@@ -21,6 +21,7 @@ struct RSVPReaderView: View {
     @State private var words: [String] = []
     @State private var state: RSVPState = .idle
     @State private var timer: Timer?
+    @State private var currentSpeed: Double = 300
 
     private var settings: AppSettings? {
         settingsArray.first
@@ -61,10 +62,17 @@ struct RSVPReaderView: View {
             Spacer()
 
             // Playback controls
-            HStack(spacing: 40) {
+            HStack(spacing: 30) {
                 // Reset button
                 Button(action: reset) {
                     Image(systemName: "backward.end.fill")
+                        .font(.title2)
+                }
+                .disabled(state == .idle)
+
+                // Skip backward button (5 words)
+                Button(action: skipBackward) {
+                    Image(systemName: "backward.fill")
                         .font(.title2)
                 }
                 .disabled(state == .idle)
@@ -75,15 +83,46 @@ struct RSVPReaderView: View {
                         .font(.largeTitle)
                 }
                 .disabled(state == .idle)
+
+                // Skip forward button (5 words)
+                Button(action: skipForward) {
+                    Image(systemName: "forward.fill")
+                        .font(.title2)
+                }
+                .disabled(state == .idle)
             }
             .padding(.vertical, 20)
+
+            // Speed slider
+            VStack(spacing: 4) {
+                Text("\(Int(currentSpeed)) WPM")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                HStack {
+                    Text("120")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+
+                    Slider(value: $currentSpeed, in: 120...900, step: 10)
+                        .onChange(of: currentSpeed) { _, newValue in
+                            updateSpeed(to: Int(newValue))
+                        }
+
+                    Text("900")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 40)
+            }
+            .padding(.vertical, 10)
 
             // Progress indicator
             if !words.isEmpty {
                 ProgressView(value: Double(currentWordIndex), total: Double(max(words.count - 1, 1)))
                     .padding(.horizontal, 40)
 
-                Text("\(currentWordIndex + 1) / \(words.count)")
+                Text("Word \(currentWordIndex + 1) of \(words.count)")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .padding(.top, 4)
@@ -102,6 +141,10 @@ struct RSVPReaderView: View {
         .onAppear {
             loadText()
             ensureSettingsExist()
+            // Initialize currentSpeed from saved settings
+            if let settings = settings {
+                currentSpeed = Double(settings.rsvpSpeed)
+            }
         }
         .onDisappear {
             stopTimer()
@@ -180,11 +223,45 @@ struct RSVPReaderView: View {
         }
     }
 
+    /// Skip backward 5 words
+    private func skipBackward() {
+        currentWordIndex = max(0, currentWordIndex - 5)
+
+        // If we were finished and skip back, transition to ready or paused state
+        if state == .finished {
+            state = .ready
+        }
+    }
+
+    /// Skip forward 5 words
+    private func skipForward() {
+        let maxIndex = words.count - 1
+        currentWordIndex = min(maxIndex, currentWordIndex + 5)
+
+        // If we reach the end while not playing, transition to finished
+        if currentWordIndex >= maxIndex && state != .playing {
+            state = .finished
+        }
+    }
+
+    /// Update the playback speed
+    private func updateSpeed(to wpm: Int) {
+        // Save the speed to settings
+        if let settings = settings {
+            settings.rsvpSpeed = wpm
+        }
+
+        // If currently playing, restart timer with new speed
+        if state == .playing {
+            stopTimer()
+            startTimer()
+        }
+    }
+
     // MARK: - Timer Management
 
     private func startTimer() {
-        let wpm = settings?.rsvpSpeed ?? 300
-        let interval = 60.0 / Double(wpm)
+        let interval = 60.0 / currentSpeed
 
         timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
             advanceWord()
