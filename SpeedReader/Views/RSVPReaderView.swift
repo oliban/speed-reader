@@ -17,6 +17,9 @@ struct RSVPReaderView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var settingsArray: [AppSettings]
 
+    // Query for existing reading progress for this article and RSVP mode
+    @State private var savedProgress: ReadingProgress?
+
     @State private var currentWordIndex: Int = 0
     @State private var words: [String] = []
     @State private var state: RSVPState = .idle
@@ -141,6 +144,7 @@ struct RSVPReaderView: View {
         .onAppear {
             loadText()
             ensureSettingsExist()
+            loadProgress()
             // Initialize currentSpeed from saved settings
             if let settings = settings {
                 currentSpeed = Double(settings.rsvpSpeed)
@@ -148,6 +152,7 @@ struct RSVPReaderView: View {
         }
         .onDisappear {
             stopTimer()
+            saveProgress()
         }
     }
 
@@ -195,6 +200,57 @@ struct RSVPReaderView: View {
 
         stopTimer()
         state = .paused
+        saveProgress()
+    }
+
+    // MARK: - Progress Persistence
+
+    /// Loads saved reading progress for this article and RSVP mode
+    private func loadProgress() {
+        let articleId = article.id
+        let descriptor = FetchDescriptor<ReadingProgress>(
+            predicate: #Predicate { progress in
+                progress.articleId == articleId && progress.mode == .rsvp
+            }
+        )
+
+        do {
+            let results = try modelContext.fetch(descriptor)
+            if let existingProgress = results.first {
+                savedProgress = existingProgress
+                // Only restore position if within valid range
+                if existingProgress.currentWordIndex < words.count {
+                    currentWordIndex = existingProgress.currentWordIndex
+                    // If we have a saved position, transition to ready state
+                    if currentWordIndex > 0 && state == .ready {
+                        state = .paused
+                    }
+                }
+            }
+        } catch {
+            // Silently fail - will start from beginning
+        }
+    }
+
+    /// Saves current reading progress for this article
+    private func saveProgress() {
+        guard !words.isEmpty else { return }
+
+        if let existingProgress = savedProgress {
+            // Update existing progress
+            existingProgress.currentWordIndex = currentWordIndex
+            existingProgress.totalWords = words.count
+        } else {
+            // Create new progress entry
+            let newProgress = ReadingProgress(
+                articleId: article.id,
+                currentWordIndex: currentWordIndex,
+                totalWords: words.count,
+                mode: .rsvp
+            )
+            modelContext.insert(newProgress)
+            savedProgress = newProgress
+        }
     }
 
     /// Handles reaching the end of text - transitions to FINISHED
