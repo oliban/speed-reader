@@ -8,6 +8,8 @@ struct TTSReaderView: View {
     @State private var isPaused: Bool = false
     @State private var selectedSpeed: Double = 1.0
     @State private var currentSentenceIndex: Int = 0
+    @State private var fullText: String = ""
+    @State private var sentenceRanges: [NSRange] = []
 
     // Speed presets as specified
     private let speedPresets: [Double] = [0.5, 1.0, 1.5, 2.0, 3.0, 4.0]
@@ -44,29 +46,40 @@ struct TTSReaderView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 // Article text display with current sentence highlighted
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        // Title
-                        Text(article.title)
-                            .font(.title)
-                            .fontWeight(.bold)
-                            .padding(.bottom, 8)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 16) {
+                            // Title
+                            Text(article.title)
+                                .font(.title)
+                                .fontWeight(.bold)
+                                .padding(.bottom, 8)
 
-                        // Article content with sentence highlighting
-                        VStack(alignment: .leading, spacing: 8) {
-                            ForEach(Array(sentences.enumerated()), id: \.offset) { index, sentence in
-                                Text(sentence)
-                                    .padding(8)
-                                    .background(
-                                        index == currentSentenceIndex && isPlaying && !isPaused
-                                            ? Color.yellow.opacity(0.3)
-                                            : Color.clear
-                                    )
-                                    .cornerRadius(4)
+                            // Article content with sentence highlighting
+                            VStack(alignment: .leading, spacing: 8) {
+                                ForEach(Array(sentences.enumerated()), id: \.offset) { index, sentence in
+                                    Text(sentence)
+                                        .padding(8)
+                                        .background(
+                                            index == currentSentenceIndex && isPlaying && !isPaused
+                                                ? Color.yellow.opacity(0.3)
+                                                : Color.clear
+                                        )
+                                        .cornerRadius(4)
+                                        .id(index)
+                                }
+                            }
+                        }
+                        .padding()
+                    }
+                    .onChange(of: currentSentenceIndex) { oldValue, newValue in
+                        // Auto-scroll to keep current sentence visible
+                        if isPlaying && !isPaused {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                proxy.scrollTo(newValue, anchor: .center)
                             }
                         }
                     }
-                    .padding()
                 }
 
                 Divider()
@@ -133,6 +146,50 @@ struct TTSReaderView: View {
             }
             .navigationTitle("Reader")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                setupTTSHandlers()
+            }
+        }
+    }
+
+    // MARK: - Setup
+
+    private func setupTTSHandlers() {
+        Task {
+            // Set up speech progress handler
+            await ttsService.setSpeechProgressHandler { [self] characterRange in
+                self.updateCurrentSentence(for: characterRange)
+            }
+
+            // Set up speech completion handler
+            await ttsService.setSpeechCompletionHandler { [self] in
+                self.isPlaying = false
+                self.isPaused = false
+                self.currentSentenceIndex = 0
+            }
+        }
+    }
+
+    private func updateCurrentSentence(for characterRange: NSRange) {
+        // Find which sentence contains the current character range
+        for (index, sentenceRange) in sentenceRanges.enumerated() {
+            if NSIntersectionRange(characterRange, sentenceRange).length > 0 {
+                currentSentenceIndex = index
+                break
+            }
+        }
+    }
+
+    private func buildSentenceRanges() {
+        fullText = sentences.joined(separator: " ")
+        sentenceRanges.removeAll()
+
+        var currentLocation = 0
+        for sentence in sentences {
+            let length = sentence.count
+            sentenceRanges.append(NSRange(location: currentLocation, length: length))
+            // Add 1 for the space separator
+            currentLocation += length + 1
         }
     }
 
@@ -143,12 +200,13 @@ struct TTSReaderView: View {
 
         isPlaying = true
         isPaused = false
+        currentSentenceIndex = 0
+
+        // Build sentence ranges for tracking
+        buildSentenceRanges()
 
         Task {
             do {
-                // For now, read all sentences as one block
-                // Enhanced sentence-by-sentence tracking will be in TTS-004
-                let fullText = sentences.joined(separator: " ")
                 try await ttsService.speak(text: fullText, speedMultiplier: selectedSpeed)
             } catch {
                 // Handle error silently for now
