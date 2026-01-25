@@ -8,6 +8,18 @@ struct LibraryView: View {
 
     @State private var articleToDelete: Article?
     @State private var showDeleteConfirmation = false
+    @State private var searchText = ""
+
+    private var filteredArticles: [Article] {
+        if searchText.isEmpty {
+            return articles
+        }
+        let lowercasedSearch = searchText.lowercased()
+        return articles.filter { article in
+            article.title.lowercased().contains(lowercasedSearch) ||
+            article.url.lowercased().contains(lowercasedSearch)
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -24,9 +36,21 @@ struct LibraryView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
+                } else if filteredArticles.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 60))
+                            .foregroundStyle(.gray)
+                        Text("No results")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        Text("No articles match your search")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
                 } else {
                     List {
-                        ForEach(articles) { article in
+                        ForEach(filteredArticles) { article in
                             ArticleRowView(article: article)
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                     Button(role: .destructive) {
@@ -41,6 +65,7 @@ struct LibraryView: View {
                 }
             }
             .navigationTitle("Library")
+            .searchable(text: $searchText, prompt: "Search articles")
             .alert("Delete Article?", isPresented: $showDeleteConfirmation) {
                 Button("Cancel", role: .cancel) {
                     articleToDelete = nil

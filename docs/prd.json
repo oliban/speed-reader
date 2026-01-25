@@ -1,0 +1,518 @@
+{
+  "project": "speed-reader",
+  "branchName": "master",
+  "description": "iOS speed reading app with RSVP and TTS modes",
+  "config": {
+    "testing": {
+      "mode": "manual",
+      "skill": null,
+      "notes": "Verify with xcodebuild build, manual testing in simulator"
+    },
+    "build": {
+      "command": "cd /Users/fredriksafsten/Projects/speed-reader && xcodebuild build -project SpeedReader.xcodeproj -scheme SpeedReader -destination 'platform=iOS Simulator,name=iPhone 16' -quiet",
+      "lintCommand": null,
+      "testCommand": null
+    }
+  },
+  "userStories": [
+    {
+      "id": "SETUP-001",
+      "title": "Create Xcode project with SwiftUI and SwiftData",
+      "description": "Create iOS 17+ Xcode project named SpeedReader. Configure SwiftUI lifecycle, add SwiftData capability. Set up folder structure: App/, Models/, Services/, Views/, Storage/.",
+      "acceptanceCriteria": [
+        "SpeedReader.xcodeproj exists",
+        "Project builds successfully",
+        "SwiftUI app lifecycle configured",
+        "Folder structure created"
+      ],
+      "priority": 1,
+      "passes": true,
+      "blockedBy": [],
+      "isBasePlate": true
+    },
+    {
+      "id": "SETUP-002",
+      "title": "Add SwiftSoup SPM dependency",
+      "description": "Add SwiftSoup package dependency from https://github.com/scinfu/SwiftSoup for HTML parsing.",
+      "acceptanceCriteria": [
+        "SwiftSoup package in dependencies",
+        "Can import SwiftSoup in code",
+        "Project builds with dependency"
+      ],
+      "priority": 1,
+      "passes": true,
+      "blockedBy": ["SETUP-001"],
+      "isBasePlate": true
+    },
+    {
+      "id": "SETUP-003",
+      "title": "Create basic tab navigation structure",
+      "description": "Implement MainTabView with 3 tabs: Home (URL input), Library, Settings. Use SF Symbols for tab icons.",
+      "acceptanceCriteria": [
+        "MainTabView with TabView",
+        "3 tabs: Home, Library, Settings",
+        "SF Symbol icons on each tab",
+        "Tab switching works"
+      ],
+      "priority": 1,
+      "passes": true,
+      "blockedBy": ["SETUP-001"],
+      "isBasePlate": true
+    },
+    {
+      "id": "MODEL-001",
+      "title": "Implement Article SwiftData model",
+      "description": "Create Article @Model class with: id (UUID), url (String), title (String), content (String), dateAdded (Date), lastRead (Date?).",
+      "acceptanceCriteria": [
+        "Article.swift exists in Models/",
+        "@Model class with all properties",
+        "UUID, String, Date types correct"
+      ],
+      "priority": 1,
+      "passes": true,
+      "blockedBy": ["SETUP-001"],
+      "isBasePlate": true
+    },
+    {
+      "id": "MODEL-002",
+      "title": "Implement ReadingProgress SwiftData model",
+      "description": "Create ReadingProgress @Model with: articleId (UUID), currentWordIndex (Int), totalWords (Int), mode (ReadingMode enum: .rsvp, .tts).",
+      "acceptanceCriteria": [
+        "ReadingProgress.swift exists",
+        "ReadingMode enum defined",
+        "@Model with all properties"
+      ],
+      "priority": 1,
+      "passes": true,
+      "blockedBy": ["SETUP-001"],
+      "isBasePlate": true
+    },
+    {
+      "id": "MODEL-003",
+      "title": "Implement AppSettings SwiftData model",
+      "description": "Create AppSettings @Model with: rsvpSpeed (Int, default 300), ttsSpeedMultiplier (Double, default 1.0), focusColor (String, default #FF3B30), selectedVoiceId (String?).",
+      "acceptanceCriteria": [
+        "AppSettings.swift exists",
+        "@Model with all properties",
+        "Default values set"
+      ],
+      "priority": 1,
+      "passes": true,
+      "blockedBy": ["SETUP-001"],
+      "isBasePlate": true
+    },
+    {
+      "id": "EXTRACT-001",
+      "title": "Implement URLInputView",
+      "description": "Create view with TextField for URL input, paste button, and fetch button. Show loading state during extraction. Display error messages for invalid URLs or failed extraction.",
+      "acceptanceCriteria": [
+        "URLInputView.swift exists",
+        "TextField for URL input",
+        "Paste button fills from clipboard",
+        "Fetch button triggers extraction",
+        "Loading indicator during fetch",
+        "Error message display"
+      ],
+      "priority": 2,
+      "passes": true,
+      "blockedBy": ["SETUP-003", "MODEL-001"],
+      "isBasePlate": true
+    },
+    {
+      "id": "EXTRACT-002",
+      "title": "Implement ArticleExtractor service",
+      "description": "Create service to fetch HTML from URL using URLSession, parse with SwiftSoup. Extract title from <title> or <h1>. Find article content using priority: <article>, [role=main], <main>, .post-content/.article-content/.entry-content, or largest text-heavy div.",
+      "acceptanceCriteria": [
+        "ArticleExtractor.swift in Services/",
+        "Async fetch with URLSession",
+        "SwiftSoup HTML parsing",
+        "Title extraction logic",
+        "Content extraction with priority order"
+      ],
+      "priority": 2,
+      "passes": true,
+      "blockedBy": ["SETUP-002"],
+      "isBasePlate": true
+    },
+    {
+      "id": "EXTRACT-003",
+      "title": "Implement HTML content stripping",
+      "description": "Strip unwanted elements: script, style, nav, header, footer, aside. Remove elements with classes containing 'ad', 'sidebar', 'comment', 'related'. Clean text: normalize whitespace, remove empty paragraphs, preserve paragraph breaks.",
+      "acceptanceCriteria": [
+        "Strips script, style, nav, header, footer, aside",
+        "Removes ad/sidebar/comment/related classes",
+        "Normalizes whitespace",
+        "Preserves paragraph structure"
+      ],
+      "priority": 2,
+      "passes": true,
+      "blockedBy": ["EXTRACT-002"],
+      "isBasePlate": true
+    },
+    {
+      "id": "RSVP-001",
+      "title": "Implement TextTokenizer service",
+      "description": "Create tokenize() function splitting text on whitespace. Create TokenizedText struct with words array, paragraphIndices array, and paragraphs array. Implement buildParagraphsData() for context mapping.",
+      "acceptanceCriteria": [
+        "TextTokenizer.swift in Services/",
+        "tokenize() splits on whitespace",
+        "TokenizedText struct defined",
+        "buildParagraphsData() maps words to paragraphs"
+      ],
+      "priority": 2,
+      "passes": true,
+      "blockedBy": ["EXTRACT-003"],
+      "isBasePlate": false
+    },
+    {
+      "id": "RSVP-002",
+      "title": "Implement focus letter calculation",
+      "description": "Create RSVPWord struct with leftPart, focusLetter, rightPart. Implement getFocusIndex() returning floor(word.count/2). Implement splitWord() that returns RSVPWord.",
+      "acceptanceCriteria": [
+        "RSVPWord struct defined",
+        "getFocusIndex() returns middle index",
+        "splitWord() splits correctly",
+        "Test: 'hello' -> 'he' + 'l' + 'lo'"
+      ],
+      "priority": 2,
+      "passes": true,
+      "blockedBy": ["RSVP-001"],
+      "isBasePlate": false
+    },
+    {
+      "id": "RSVP-003",
+      "title": "Implement timing calculations",
+      "description": "Implement getDelay(wpm:) returning 60000/wpm milliseconds. Implement getDelayMultiplier() returning 1.5x for .!?, 1.2x for ,:; and 1.0x otherwise.",
+      "acceptanceCriteria": [
+        "getDelay() converts WPM to ms",
+        "300 WPM = 200ms",
+        "getDelayMultiplier() handles punctuation",
+        "Period/exclamation/question = 1.5x",
+        "Comma/colon/semicolon = 1.2x"
+      ],
+      "priority": 2,
+      "passes": true,
+      "blockedBy": ["RSVP-001"],
+      "isBasePlate": false
+    },
+    {
+      "id": "RSVP-004",
+      "title": "Implement RSVPReaderView display",
+      "description": "Create view showing current word centered. Display leftPart in normal color, focusLetter in accent color (from settings), rightPart in normal color. Use large readable font (32-48pt).",
+      "acceptanceCriteria": [
+        "RSVPReaderView.swift in Views/",
+        "Word displayed centered",
+        "Focus letter in accent color",
+        "Left/right parts normal color",
+        "Large font (32-48pt)"
+      ],
+      "priority": 2,
+      "passes": true,
+      "blockedBy": ["RSVP-002"],
+      "isBasePlate": false
+    },
+    {
+      "id": "RSVP-005",
+      "title": "Implement RSVP playback state machine",
+      "description": "Implement states: IDLE, READY, PLAYING, PAUSED, FINISHED. Handle loadText(), play(), pause(), reachedEnd() transitions. Use Timer for word advancement.",
+      "acceptanceCriteria": [
+        "RSVPState enum with all states",
+        "State transitions work correctly",
+        "Timer advances words",
+        "Pause stops timer",
+        "Resume continues from position"
+      ],
+      "priority": 2,
+      "passes": false,
+      "blockedBy": ["RSVP-003", "RSVP-004"],
+      "isBasePlate": false
+    },
+    {
+      "id": "RSVP-006",
+      "title": "Implement RSVP controls",
+      "description": "Add play/pause button, skip backward/forward buttons (jump 5 words). Add speed slider (120-900 WPM). Show progress bar and word count (e.g., 'Word 47 of 230').",
+      "acceptanceCriteria": [
+        "Play/pause toggle button",
+        "Skip back/forward 5 words",
+        "Speed slider 120-900 WPM",
+        "Progress bar shows position",
+        "Word count display"
+      ],
+      "priority": 2,
+      "passes": false,
+      "blockedBy": ["RSVP-005"],
+      "isBasePlate": false
+    },
+    {
+      "id": "UI-001",
+      "title": "Implement mode selection after extraction",
+      "description": "After article extraction, show modal/sheet to choose reading mode (RSVP or TTS). Navigate to appropriate reader view.",
+      "acceptanceCriteria": [
+        "Sheet appears after extraction",
+        "RSVP and TTS mode buttons",
+        "Selection navigates to reader",
+        "Article passed to reader view"
+      ],
+      "priority": 2,
+      "passes": false,
+      "blockedBy": ["EXTRACT-001", "RSVP-006"],
+      "isBasePlate": false
+    },
+    {
+      "id": "TTS-001",
+      "title": "Implement TTSService with AVSpeechSynthesizer",
+      "description": "Create service wrapping AVSpeechSynthesizer. Implement speak(text:), pause(), resume(), stop(). Map speed multipliers to AVSpeechUtterance rate (baseRate 0.5 * multiplier, clamped to valid range).",
+      "acceptanceCriteria": [
+        "TTSService.swift in Services/",
+        "AVSpeechSynthesizer wrapper",
+        "speak(), pause(), resume(), stop() methods",
+        "Speed multiplier to rate mapping"
+      ],
+      "priority": 3,
+      "passes": true,
+      "blockedBy": ["EXTRACT-003"],
+      "isBasePlate": false
+    },
+    {
+      "id": "TTS-002",
+      "title": "Configure background audio for TTS",
+      "description": "Configure AVAudioSession for playback category with mixWithOthers option. Enable background audio in Info.plist. Handle audio interruptions gracefully.",
+      "acceptanceCriteria": [
+        "AVAudioSession configured",
+        "Background mode in Info.plist",
+        "Audio continues when app backgrounded",
+        "Interruption handling"
+      ],
+      "priority": 3,
+      "passes": true,
+      "blockedBy": ["TTS-001"],
+      "isBasePlate": false
+    },
+    {
+      "id": "TTS-003",
+      "title": "Implement TTSReaderView",
+      "description": "Create view showing article text with current sentence highlighted. Add play/pause/stop controls. Add speed selector with presets: 0.5x, 1x, 1.5x, 2x, 3x, 4x.",
+      "acceptanceCriteria": [
+        "TTSReaderView.swift in Views/",
+        "Article text displayed",
+        "Current sentence highlighted",
+        "Play/pause/stop controls",
+        "Speed preset buttons"
+      ],
+      "priority": 3,
+      "passes": true,
+      "blockedBy": ["TTS-001"],
+      "isBasePlate": false
+    },
+    {
+      "id": "TTS-004",
+      "title": "Implement TTS sentence tracking",
+      "description": "Use AVSpeechSynthesizerDelegate to track speech progress. Highlight current sentence being spoken. Scroll text view to keep current sentence visible.",
+      "acceptanceCriteria": [
+        "AVSpeechSynthesizerDelegate implemented",
+        "Current sentence tracked",
+        "Sentence highlight updates",
+        "Auto-scroll to current sentence"
+      ],
+      "priority": 3,
+      "passes": true,
+      "blockedBy": ["TTS-003"],
+      "isBasePlate": false
+    },
+    {
+      "id": "LIB-001",
+      "title": "Implement ArticleStore with SwiftData",
+      "description": "Create ArticleStore class managing SwiftData ModelContainer. Implement save(article:), delete(article:), fetchAll(), fetchById(). Configure container in App struct.",
+      "acceptanceCriteria": [
+        "ArticleStore.swift in Storage/",
+        "ModelContainer configured",
+        "CRUD operations work",
+        "Container in App struct"
+      ],
+      "priority": 3,
+      "passes": true,
+      "blockedBy": ["MODEL-001", "MODEL-002"],
+      "isBasePlate": false
+    },
+    {
+      "id": "LIB-002",
+      "title": "Implement LibraryView list",
+      "description": "Create view listing saved articles. Show title, URL domain, date added, reading progress percentage. Sort by lastRead date descending.",
+      "acceptanceCriteria": [
+        "LibraryView shows article list",
+        "Title and domain displayed",
+        "Date added shown",
+        "Progress percentage",
+        "Sorted by lastRead"
+      ],
+      "priority": 3,
+      "passes": true,
+      "blockedBy": ["LIB-001"],
+      "isBasePlate": false
+    },
+    {
+      "id": "LIB-003",
+      "title": "Implement swipe-to-delete in Library",
+      "description": "Add swipe gesture for deleting articles. Show confirmation alert before deletion. Remove article and associated progress from SwiftData.",
+      "acceptanceCriteria": [
+        "Swipe gesture on rows",
+        "Delete confirmation alert",
+        "Article removed from store",
+        "Progress data cleaned up"
+      ],
+      "priority": 3,
+      "passes": true,
+      "blockedBy": ["LIB-002"],
+      "isBasePlate": false
+    },
+    {
+      "id": "LIB-004",
+      "title": "Implement reading progress persistence",
+      "description": "Save current word index when pausing or leaving reader. Load and resume from saved position when reopening article. Track progress separately for RSVP and TTS modes.",
+      "acceptanceCriteria": [
+        "Progress saved on pause/exit",
+        "Resume from saved position",
+        "Separate RSVP and TTS progress",
+        "Survives app restart"
+      ],
+      "priority": 3,
+      "passes": false,
+      "blockedBy": ["LIB-001", "RSVP-006", "TTS-003"],
+      "isBasePlate": false
+    },
+    {
+      "id": "LIB-005",
+      "title": "Implement article search in Library",
+      "description": "Add search bar to LibraryView. Filter articles by title and URL as user types. Show 'No results' message when search yields nothing.",
+      "acceptanceCriteria": [
+        "Search bar in LibraryView",
+        "Filters by title and URL",
+        "Real-time filtering",
+        "No results message"
+      ],
+      "priority": 4,
+      "passes": true,
+      "blockedBy": ["LIB-002"],
+      "isBasePlate": false
+    },
+    {
+      "id": "SETTINGS-001",
+      "title": "Implement SettingsView",
+      "description": "Create settings view with sections for RSVP, TTS, and Appearance. Use SwiftUI Form with appropriate controls. Persist all changes to AppSettings model.",
+      "acceptanceCriteria": [
+        "SettingsView.swift in Views/",
+        "Form with sections",
+        "RSVP, TTS, Appearance sections",
+        "Changes persist to AppSettings"
+      ],
+      "priority": 4,
+      "passes": true,
+      "blockedBy": ["MODEL-003"],
+      "isBasePlate": false
+    },
+    {
+      "id": "SETTINGS-002",
+      "title": "Implement RSVP speed default setting",
+      "description": "Add stepper or slider for default WPM (120-900). Show current value. Apply to new reading sessions.",
+      "acceptanceCriteria": [
+        "Slider/stepper in settings",
+        "Range 120-900 WPM",
+        "Current value displayed",
+        "Applied to new sessions"
+      ],
+      "priority": 4,
+      "passes": true,
+      "blockedBy": ["SETTINGS-001"],
+      "isBasePlate": false
+    },
+    {
+      "id": "SETTINGS-003",
+      "title": "Implement focus letter color picker",
+      "description": "Add ColorPicker for focus letter color. Show preview of how word will look. Default to red (#FF3B30).",
+      "acceptanceCriteria": [
+        "ColorPicker control",
+        "Preview of word appearance",
+        "Default red color",
+        "Color persists"
+      ],
+      "priority": 4,
+      "passes": false,
+      "blockedBy": ["SETTINGS-001"],
+      "isBasePlate": false
+    },
+    {
+      "id": "SETTINGS-004",
+      "title": "Implement TTS voice selection",
+      "description": "List available system voices from AVSpeechSynthesisVoice.speechVoices(). Group by language. Show voice name and preview button. Save selected voice ID.",
+      "acceptanceCriteria": [
+        "Voice list from system",
+        "Grouped by language",
+        "Preview button plays sample",
+        "Selection persists"
+      ],
+      "priority": 4,
+      "passes": false,
+      "blockedBy": ["SETTINGS-001", "TTS-001"],
+      "isBasePlate": false
+    },
+    {
+      "id": "SETTINGS-005",
+      "title": "Implement TTS speed default setting",
+      "description": "Add picker for default TTS speed multiplier (0.5x-4x). Apply to new TTS sessions.",
+      "acceptanceCriteria": [
+        "Speed picker in settings",
+        "Options: 0.5x to 4x",
+        "Applied to new TTS sessions"
+      ],
+      "priority": 4,
+      "passes": false,
+      "blockedBy": ["SETTINGS-001"],
+      "isBasePlate": false
+    },
+    {
+      "id": "UI-002",
+      "title": "Implement RSVP context view",
+      "description": "Optional collapsible section below RSVP display showing current paragraph with current word highlighted. Use paragraph mapping from TokenizedText.",
+      "acceptanceCriteria": [
+        "Collapsible context section",
+        "Current paragraph displayed",
+        "Current word highlighted",
+        "Uses TokenizedText mapping"
+      ],
+      "priority": 4,
+      "passes": false,
+      "blockedBy": ["RSVP-006"],
+      "isBasePlate": false
+    },
+    {
+      "id": "THEME-001",
+      "title": "Implement dark/light mode support",
+      "description": "Add setting to override system appearance (System/Light/Dark). Apply to all views. Ensure RSVP reader is readable in both modes.",
+      "acceptanceCriteria": [
+        "Appearance setting in Settings",
+        "System/Light/Dark options",
+        "Applied to all views",
+        "RSVP readable in both modes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "blockedBy": ["SETTINGS-001"],
+      "isBasePlate": false
+    },
+    {
+      "id": "UI-003",
+      "title": "Polish overall UI appearance",
+      "description": "Consistent spacing, colors, and typography across all views. Add appropriate SF Symbols. Ensure accessibility with Dynamic Type support.",
+      "acceptanceCriteria": [
+        "Consistent spacing",
+        "Consistent colors",
+        "SF Symbols throughout",
+        "Dynamic Type support"
+      ],
+      "priority": 5,
+      "passes": false,
+      "blockedBy": ["RSVP-006", "TTS-003", "LIB-002", "SETTINGS-001"],
+      "isBasePlate": false
+    }
+  ]
+}

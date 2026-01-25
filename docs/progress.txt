@@ -1,0 +1,51 @@
+# Progress Log
+# Append-only learnings from coordination
+# Started: 2026-01-25
+
+[2026-01-25] SETUP-001 PASSED: Create Xcode project with SwiftUI and SwiftData
+[2026-01-25] SETUP-002 PASSED: Add SwiftSoup SPM dependency
+[2026-01-25] SETUP-003 PASSED: Create basic tab navigation structure
+[2026-01-25] MODEL-001 PASSED: Implement Article SwiftData model
+[2026-01-25] MODEL-002 PASSED: Implement ReadingProgress SwiftData model
+[2026-01-25] MODEL-003 PASSED: Implement AppSettings SwiftData model
+[2026-01-25] Level 0 (Foundation) merged to master
+[2026-01-25] EXTRACT-001 PASSED: Implement URLInputView
+[2026-01-25] EXTRACT-002 PASSED: Implement ArticleExtractor service
+[2026-01-25] EXTRACT-003 PASSED: Implement HTML content stripping
+[2026-01-25] Level 1 (Extraction) merged to master
+[2026-01-25] Converted to prd.json format for coordinate skill
+[2026-01-25 21:52] Spawned 4 parallel coders: RSVP-001, TTS-001, LIB-001, SETTINGS-001
+[2026-01-25 21:53] TTS-001 coder COMPLETE - spawned reviewer
+[2026-01-25 21:54] TTS-001 PASSED: Implemented TTSService - MERGED to master
+[2026-01-25 21:55] Spawned 2 more coders: TTS-002, TTS-003 (unblocked by TTS-001)
+[2026-01-25 21:56] RSVP-001 coder COMPLETE - spawned reviewer
+[2026-01-25 21:57] RSVP-001 PASSED: Implemented TextTokenizer - MERGED to master
+[2026-01-25 21:57] Spawned 2 more coders: RSVP-002, RSVP-003 (unblocked by RSVP-001)
+[2026-01-25 21:58] TTS-002 coder COMPLETE - spawned reviewer
+[2026-01-25 21:59] RSVP-003 coder COMPLETE - spawned reviewer
+[2026-01-25 22:00] RSVP-003 PASSED: Timing calculations - MERGED to master
+[2026-01-25 22:01] TTS-002 PASSED: Background audio config - MERGED to master
+[2026-01-25 22:07] LIB-001, SETTINGS-001, TTS-003, RSVP-002 coders COMPLETE - spawned 4 reviewers
+[2026-01-25 22:09] LIB-001 PASSED: ArticleStore - MERGED to master
+[2026-01-25 22:09] Spawned LIB-002 coder (unblocked by LIB-001)
+[2026-01-25 22:11] TTS-003 PASSED: TTSReaderView - MERGED to master
+[2026-01-25 22:11] TTS-003 merged, spawned TTS-004 coder
+[2026-01-25 22:12] LIB-002 coder COMPLETE - spawned reviewer
+[2026-01-25 22:13] TTS-004 coder COMPLETE - spawned reviewer
+[2026-01-25 22:15] TTS-004 PASSED: Sentence tracking - MERGED to master (TTS COMPLETE!)
+[2026-01-25 22:16] User waiting for testable state - targeting UI-001 merge
+[2026-01-25 22:30] Reviews complete: SETTINGS-001, RSVP-002, LIB-002 all returned CHANGES_NEEDED
+[2026-01-25 22:30] SETTINGS-001 issue: read-only, needs interactive controls
+[2026-01-25 22:30] RSVP-002 issue: empty string crash risk in splitWord()
+[2026-01-25 22:30] LIB-002 issue: progress hardcoded to "0%"
+[2026-01-25 22:30] Spawned 3 fix agents for reviewer issues
+[2026-01-25 22:32] All 3 fixes COMPLETE - spawned 3 re-reviewers
+[2026-01-25 22:35] SETTINGS-001 PASSED - MERGED to master
+[2026-01-25 22:35] RSVP-002 PASSED - MERGED to master (unblocks RSVP-004!)
+[2026-01-25 22:35] LIB-002 PASSED - MERGED to master
+[2026-01-25 22:35] Progress: 19/33 tasks (58%)
+[2026-01-25 22:38] RSVP-004 PASSED: RSVPReaderView display - MERGED to master
+[2026-01-25 22:38] LIB-003 PASSED: Swipe-to-delete - MERGED to master
+[2026-01-25 22:38] LIB-005 PASSED: Article search (merged manually after conflict)
+[2026-01-25 22:38] Progress: 25/33 tasks (76%)
+[2026-01-25 22:38] Spawning RSVP-005 coder (CRITICAL PATH TO UI-001)
