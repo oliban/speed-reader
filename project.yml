@@ -1,0 +1,34 @@
+name: SpeedReader
+options:
+  bundleIdPrefix: com.speedreader
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "15.0"
+
+packages:
+  SwiftSoup:
+    url: https://github.com/scinfu/SwiftSoup
+    from: "2.6.0"
+
+targets:
+  SpeedReader:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - SpeedReader
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.speedreader.app
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        INFOPLIST_GENERATION_MODE: GeneratedFile
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        SWIFT_EMIT_LOC_STRINGS: YES
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Automatic
+    dependencies:
+      - package: SwiftSoup
