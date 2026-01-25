@@ -1,7 +1,10 @@
 import SwiftUI
+import SwiftData
 
 struct TTSReaderView: View {
     let article: Article
+
+    @Environment(\.modelContext) private var modelContext
 
     @State private var ttsService = TTSService()
     @State private var isPlaying: Bool = false
@@ -10,6 +13,10 @@ struct TTSReaderView: View {
     @State private var currentSentenceIndex: Int = 0
     @State private var fullText: String = ""
     @State private var sentenceRanges: [NSRange] = []
+
+    // For progress persistence
+    @State private var savedProgress: ReadingProgress?
+    @State private var words: [String] = []
 
     // Speed presets as specified
     private let speedPresets: [Double] = [0.5, 1.0, 1.5, 2.0, 3.0, 4.0]
@@ -148,7 +155,99 @@ struct TTSReaderView: View {
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 setupTTSHandlers()
+                loadWords()
+                loadProgress()
             }
+            .onDisappear {
+                saveProgress()
+            }
+        }
+    }
+
+    // MARK: - Progress Persistence
+
+    /// Load words array for tracking total word count
+    private func loadWords() {
+        let text = article.content.isEmpty ? article.title : article.content
+        words = text.components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+    }
+
+    /// Calculate current word index based on sentence index
+    private func currentWordIndex() -> Int {
+        guard currentSentenceIndex > 0 else { return 0 }
+
+        // Count words in all sentences before current one
+        var wordCount = 0
+        for i in 0..<min(currentSentenceIndex, sentences.count) {
+            let sentenceWords = sentences[i].components(separatedBy: .whitespacesAndNewlines)
+                .filter { !$0.isEmpty }
+            wordCount += sentenceWords.count
+        }
+        return wordCount
+    }
+
+    /// Calculate sentence index from word index
+    private func sentenceIndex(fromWordIndex targetWordIndex: Int) -> Int {
+        guard targetWordIndex > 0 else { return 0 }
+
+        var wordCount = 0
+        for (index, sentence) in sentences.enumerated() {
+            let sentenceWords = sentence.components(separatedBy: .whitespacesAndNewlines)
+                .filter { !$0.isEmpty }
+            wordCount += sentenceWords.count
+
+            if wordCount > targetWordIndex {
+                return index
+            }
+        }
+        return max(0, sentences.count - 1)
+    }
+
+    /// Loads saved reading progress for this article and TTS mode
+    private func loadProgress() {
+        let articleId = article.id
+        let descriptor = FetchDescriptor<ReadingProgress>(
+            predicate: #Predicate { progress in
+                progress.articleId == articleId && progress.mode == .tts
+            }
+        )
+
+        do {
+            let results = try modelContext.fetch(descriptor)
+            if let existingProgress = results.first {
+                savedProgress = existingProgress
+                // Convert word index to sentence index
+                let savedSentenceIndex = sentenceIndex(fromWordIndex: existingProgress.currentWordIndex)
+                if savedSentenceIndex < sentences.count {
+                    currentSentenceIndex = savedSentenceIndex
+                }
+            }
+        } catch {
+            // Silently fail - will start from beginning
+        }
+    }
+
+    /// Saves current reading progress for this article
+    private func saveProgress() {
+        guard !words.isEmpty else { return }
+
+        let wordIndex = currentWordIndex()
+
+        if let existingProgress = savedProgress {
+            // Update existing progress
+            existingProgress.currentWordIndex = wordIndex
+            existingProgress.totalWords = words.count
+        } else {
+            // Create new progress entry
+            let newProgress = ReadingProgress(
+                articleId: article.id,
+                currentWordIndex: wordIndex,
+                totalWords: words.count,
+                mode: .tts
+            )
+            modelContext.insert(newProgress)
+            savedProgress = newProgress
         }
     }
 
@@ -217,6 +316,7 @@ struct TTSReaderView: View {
 
     private func pauseReading() {
         isPaused = true
+        saveProgress()
         Task {
             await ttsService.pause()
         }
@@ -248,4 +348,5 @@ struct TTSReaderView: View {
             content: "This is a sample article. It has multiple sentences. Each sentence will be highlighted as it is read."
         )
     )
+    .modelContainer(for: [Article.self, ReadingProgress.self], inMemory: true)
 }
