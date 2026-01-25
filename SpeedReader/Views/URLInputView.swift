@@ -21,28 +21,31 @@ struct URLInputView: View {
                 VStack(spacing: 12) {
                     Image(systemName: "doc.text.magnifyingglass")
                         .font(.system(size: 60))
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(Color.accentColor)
+                        .accessibilityHidden(true)
 
                     Text("Enter URL to read")
                         .font(.headline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
 
                     Text("Paste or type a web article URL to extract and read it")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .font(.body)
+                        .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal)
+                        .padding(.horizontal, 16)
                 }
 
                 // URL Input field with paste button
                 VStack(spacing: 16) {
                     HStack(spacing: 8) {
                         TextField("https://example.com/article", text: $urlText)
+                            .font(.body)
                             .textFieldStyle(.roundedBorder)
                             .keyboardType(.URL)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .disabled(isLoading)
+                            .accessibilityLabel("Article URL")
 
                         Button {
                             pasteFromClipboard()
@@ -54,7 +57,7 @@ struct URLInputView: View {
                         .disabled(isLoading)
                         .accessibilityLabel("Paste from clipboard")
                     }
-                    .padding(.horizontal)
+                    .padding(.horizontal, 16)
 
                     // Fetch button
                     Button {
@@ -62,7 +65,7 @@ struct URLInputView: View {
                             await fetchArticle()
                         }
                     } label: {
-                        HStack {
+                        HStack(spacing: 8) {
                             if isLoading {
                                 ProgressView()
                                     .progressViewStyle(.circular)
@@ -71,28 +74,33 @@ struct URLInputView: View {
                                 Image(systemName: "arrow.down.doc")
                             }
                             Text(isLoading ? "Extracting..." : "Extract Article")
+                                .font(.body)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(urlText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
-                    .padding(.horizontal)
+                    .padding(.horizontal, 16)
+                    .accessibilityLabel(isLoading ? "Extracting article" : "Extract article")
                 }
 
                 // Error message display
                 if let errorMessage = errorMessage {
-                    HStack {
+                    HStack(spacing: 8) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(.orange)
+                            .accessibilityHidden(true)
                         Text(errorMessage)
-                            .font(.subheadline)
+                            .font(.body)
                             .foregroundStyle(.red)
                     }
-                    .padding()
+                    .padding(16)
                     .background(Color.red.opacity(0.1))
                     .cornerRadius(8)
-                    .padding(.horizontal)
+                    .padding(.horizontal, 16)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Error: \(errorMessage)")
                 }
 
                 Spacer()

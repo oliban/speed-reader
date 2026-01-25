@@ -54,23 +54,27 @@ struct TTSReaderView: View {
                                 .font(.title)
                                 .fontWeight(.bold)
                                 .padding(.bottom, 8)
+                                .accessibilityAddTraits(.isHeader)
 
                             // Article content with sentence highlighting
                             VStack(alignment: .leading, spacing: 8) {
                                 ForEach(Array(sentences.enumerated()), id: \.offset) { index, sentence in
                                     Text(sentence)
+                                        .font(.body)
                                         .padding(8)
                                         .background(
                                             index == currentSentenceIndex && isPlaying && !isPaused
-                                                ? Color.yellow.opacity(0.3)
+                                                ? Color.accentColor.opacity(0.2)
                                                 : Color.clear
                                         )
-                                        .cornerRadius(4)
+                                        .cornerRadius(8)
                                         .id(index)
+                                        .accessibilityLabel(sentence)
+                                        .accessibilityAddTraits(index == currentSentenceIndex && isPlaying && !isPaused ? .isSelected : [])
                                 }
                             }
                         }
-                        .padding()
+                        .padding(16)
                     }
                     .onChange(of: currentSentenceIndex) { oldValue, newValue in
                         // Auto-scroll to keep current sentence visible
@@ -88,30 +92,32 @@ struct TTSReaderView: View {
                 VStack(spacing: 16) {
                     // Speed selector
                     VStack(spacing: 8) {
-                        Text("Speed")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                        Label("Speed", systemImage: "gauge.with.dots.needle.50percent")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
 
-                        HStack(spacing: 12) {
+                        HStack(spacing: 8) {
                             ForEach(speedPresets, id: \.self) { speed in
                                 Button {
                                     selectedSpeed = speed
                                 } label: {
                                     Text("\(speed, specifier: "%.1f")x")
-                                        .font(.subheadline)
-                                        .fontWeight(selectedSpeed == speed ? .bold : .regular)
-                                        .frame(minWidth: 50)
+                                        .font(.body)
+                                        .fontWeight(selectedSpeed == speed ? .semibold : .regular)
+                                        .frame(minWidth: 44)
                                         .padding(.vertical, 8)
-                                        .padding(.horizontal, 12)
+                                        .padding(.horizontal, 8)
                                 }
                                 .buttonStyle(.bordered)
-                                .tint(selectedSpeed == speed ? .blue : .gray)
+                                .tint(selectedSpeed == speed ? .accentColor : .secondary)
+                                .accessibilityLabel("\(speed, specifier: "%.1f") times speed")
+                                .accessibilityAddTraits(selectedSpeed == speed ? .isSelected : [])
                             }
                         }
                     }
 
                     // Playback controls
-                    HStack(spacing: 24) {
+                    HStack(spacing: 32) {
                         // Stop button
                         Button {
                             stopReading()
@@ -122,6 +128,7 @@ struct TTSReaderView: View {
                         }
                         .buttonStyle(.bordered)
                         .disabled(!isPlaying && !isPaused)
+                        .accessibilityLabel("Stop")
 
                         // Play/Pause button
                         Button {
@@ -138,10 +145,11 @@ struct TTSReaderView: View {
                                 .frame(width: 60, height: 60)
                         }
                         .buttonStyle(.borderedProminent)
+                        .accessibilityLabel(isPaused || !isPlaying ? "Play" : "Pause")
                     }
                     .padding(.vertical, 8)
                 }
-                .padding()
+                .padding(16)
                 .background(Color(.systemBackground))
             }
             .navigationTitle("Reader")
