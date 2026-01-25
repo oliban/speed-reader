@@ -81,6 +81,9 @@ actor TextTokenizer {
     /// - Parameter word: The word to split
     /// - Returns: RSVPWord containing the three parts
     func splitWord(_ word: String) -> RSVPWord {
+        guard !word.isEmpty else {
+            return RSVPWord(leftPart: "", focusLetter: "", rightPart: "")
+        }
         let focusIndex = getFocusIndex(for: word)
         let characters = Array(word)
 
