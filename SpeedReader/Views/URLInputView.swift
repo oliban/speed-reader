@@ -37,7 +37,7 @@ struct URLInputView: View {
                 // URL Input field with paste button
                 VStack(spacing: 16) {
                     HStack(spacing: 8) {
-                        TextField("https://example.com/article", text: $urlText)
+                        TextField("https://babuschk.in/posts/2026-01-25-life-on-claude-nine.html", text: $urlText)
                             .textFieldStyle(.roundedBorder)
                             .keyboardType(.URL)
                             .textInputAutocapitalization(.never)
