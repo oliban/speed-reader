@@ -4,7 +4,7 @@ import SwiftData
 struct URLInputView: View {
     @Environment(\.modelContext) private var modelContext
 
-    @State private var urlText: String = ""
+    @State private var urlText: String = "https://babuschk.in/posts/2026-01-25-life-on-claude-nine.html"
     @State private var isLoading: Bool = false
     @State private var errorMessage: String?
     @State private var showSuccessAlert: Bool = false
@@ -37,7 +37,7 @@ struct URLInputView: View {
                 // URL Input field with paste button
                 VStack(spacing: 16) {
                     HStack(spacing: 8) {
-                        TextField("https://babuschk.in/posts/2026-01-25-life-on-claude-nine.html", text: $urlText)
+                        TextField("https://example.com/article", text: $urlText)
                             .textFieldStyle(.roundedBorder)
                             .keyboardType(.URL)
                             .textInputAutocapitalization(.never)
