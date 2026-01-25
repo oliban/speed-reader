@@ -7,8 +7,10 @@ struct URLInputView: View {
     @State private var urlText: String = "https://babuschk.in/posts/2026-01-25-life-on-claude-nine.html"
     @State private var isLoading: Bool = false
     @State private var errorMessage: String?
-    @State private var showSuccessAlert: Bool = false
-    @State private var extractedTitle: String = ""
+    @State private var showModeSelection: Bool = false
+    @State private var extractedArticle: Article?
+    @State private var navigateToRSVP: Bool = false
+    @State private var navigateToTTS: Bool = false
 
     private let extractor = ArticleExtractor()
 
@@ -99,13 +101,29 @@ struct URLInputView: View {
                 Spacer()
             }
             .navigationTitle("Home")
-            .alert("Article Saved", isPresented: $showSuccessAlert) {
-                Button("OK", role: .cancel) {
-                    // Clear the input after successful save
-                    urlText = ""
+            .sheet(isPresented: $showModeSelection) {
+                ModeSelectionSheet(
+                    article: extractedArticle,
+                    onRSVPSelected: {
+                        showModeSelection = false
+                        navigateToRSVP = true
+                    },
+                    onTTSSelected: {
+                        showModeSelection = false
+                        navigateToTTS = true
+                    }
+                )
+                .presentationDetents([.medium])
+            }
+            .navigationDestination(isPresented: $navigateToRSVP) {
+                if let article = extractedArticle {
+                    RSVPReaderView(article: article)
                 }
-            } message: {
-                Text("\"\(extractedTitle)\" has been saved to your library.")
+            }
+            .navigationDestination(isPresented: $navigateToTTS) {
+                if let article = extractedArticle {
+                    TTSReaderView(article: article)
+                }
             }
         }
     }
@@ -153,9 +171,9 @@ struct URLInputView: View {
             )
             modelContext.insert(article)
 
-            // Show success message
-            extractedTitle = title
-            showSuccessAlert = true
+            // Store the extracted article and show mode selection
+            extractedArticle = article
+            showModeSelection = true
 
         } catch let error as ArticleExtractorError {
             errorMessage = error.errorDescription
@@ -165,7 +183,101 @@ struct URLInputView: View {
     }
 }
 
+/// Sheet for selecting reading mode after article extraction
+struct ModeSelectionSheet: View {
+    let article: Article?
+    let onRSVPSelected: () -> Void
+    let onTTSSelected: () -> Void
+
+    var body: some View {
+        VStack(spacing: 24) {
+            // Header
+            VStack(spacing: 8) {
+                Image(systemName: "book.pages")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.blue)
+
+                Text("Choose Reading Mode")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                if let article = article {
+                    Text(article.title)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .padding(.horizontal)
+                }
+            }
+            .padding(.top, 24)
+
+            // Mode selection buttons
+            VStack(spacing: 16) {
+                Button(action: onRSVPSelected) {
+                    HStack {
+                        Image(systemName: "text.word.spacing")
+                            .font(.title2)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("RSVP Reader")
+                                .font(.headline)
+                            Text("Rapid Serial Visual Presentation")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color(.secondarySystemBackground))
+                    .cornerRadius(12)
+                }
+                .buttonStyle(.plain)
+
+                Button(action: onTTSSelected) {
+                    HStack {
+                        Image(systemName: "speaker.wave.2")
+                            .font(.title2)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("TTS Reader")
+                                .font(.headline)
+                            Text("Text-to-Speech with highlighting")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color(.secondarySystemBackground))
+                    .cornerRadius(12)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal)
+
+            Spacer()
+        }
+    }
+}
+
 #Preview {
     URLInputView()
         .modelContainer(for: Article.self, inMemory: true)
+}
+
+#Preview("Mode Selection Sheet") {
+    ModeSelectionSheet(
+        article: Article(
+            url: "https://example.com",
+            title: "Sample Article Title",
+            content: "Sample content"
+        ),
+        onRSVPSelected: {},
+        onTTSSelected: {}
+    )
 }

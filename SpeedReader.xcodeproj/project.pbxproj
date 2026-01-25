@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0C1E27DCE7B0E9400BFD48CD /* TextTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4158AC2B325DE25FED8F54E /* TextTokenizer.swift */; };
+		23BC85A0BCD1ACA14FF20A73 /* TTSReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12CF0D734731419D1826CFA3 /* TTSReaderView.swift */; };
+		379A296E0A62CC286FE7BD35 /* RSVPReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D87FEDE62DE25A364BA459EB /* RSVPReaderView.swift */; };
 		3D143B017ECE9F505C63E256 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09B12AD01A2E07F50180AE12 /* SettingsView.swift */; };
 		6C351CDCC751B2118EE21757 /* SpeedReaderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AD364A66F4F9A5FCC5E2DDE /* SpeedReaderApp.swift */; };
 		8866D4DEF514C554C6CCE031 /* ReadingMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA3E69F0F620CE67BF62A3B8 /* ReadingMode.swift */; };
@@ -19,22 +22,27 @@
 		EC4F90A8BB3C3D0E7B7ACFEA /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = 618714103CE441DDB78F2F86 /* SwiftSoup */; };
 		F241D8AC5F849319854B0DF2 /* ReadingProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB96B615198C3298D33B3E34 /* ReadingProgress.swift */; };
 		F5ED42508B88CD6784D9C722 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41CCF7F27672DE93BB224544 /* MainTabView.swift */; };
+		FB87BC77CAA48195747D9E2C /* ArticleStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E440459E0F6C05804580370 /* ArticleStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		09B12AD01A2E07F50180AE12 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		12CF0D734731419D1826CFA3 /* TTSReaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSReaderView.swift; sourceTree = "<group>"; };
 		25E0ABA3145B02462406480C /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		28CD761596D5233966D5B799 /* ArticleExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleExtractor.swift; sourceTree = "<group>"; };
 		41CCF7F27672DE93BB224544 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		4AD364A66F4F9A5FCC5E2DDE /* SpeedReaderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeedReaderApp.swift; sourceTree = "<group>"; };
+		5E440459E0F6C05804580370 /* ArticleStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleStore.swift; sourceTree = "<group>"; };
 		7910161B57B9E90098EA51A0 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		A7273E1CE535D34EED6103AA /* SpeedReader.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SpeedReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB96B615198C3298D33B3E34 /* ReadingProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingProgress.swift; sourceTree = "<group>"; };
 		AF04517A156643C8DF566E41 /* URLInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLInputView.swift; sourceTree = "<group>"; };
 		C8D06F4A2C7148E86BFD832D /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		CE8E8320CCDFB5B76FD675CC /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
+		D87FEDE62DE25A364BA459EB /* RSVPReaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RSVPReaderView.swift; sourceTree = "<group>"; };
 		E25051EAFD3C9756C84A8F37 /* TTSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSService.swift; sourceTree = "<group>"; };
 		EABBEC5A21FFAF3842C2635E /* Article.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Article.swift; sourceTree = "<group>"; };
+		F4158AC2B325DE25FED8F54E /* TextTokenizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextTokenizer.swift; sourceTree = "<group>"; };
 		FA3E69F0F620CE67BF62A3B8 /* ReadingMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingMode.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -63,6 +71,7 @@
 			children = (
 				C8D06F4A2C7148E86BFD832D /* .gitkeep */,
 				28CD761596D5233966D5B799 /* ArticleExtractor.swift */,
+				F4158AC2B325DE25FED8F54E /* TextTokenizer.swift */,
 				E25051EAFD3C9756C84A8F37 /* TTSService.swift */,
 			);
 			path = Services;
@@ -92,6 +101,7 @@
 			isa = PBXGroup;
 			children = (
 				25E0ABA3145B02462406480C /* .gitkeep */,
+				5E440459E0F6C05804580370 /* ArticleStore.swift */,
 			);
 			path = Storage;
 			sourceTree = "<group>";
@@ -109,7 +119,9 @@
 			children = (
 				CE8E8320CCDFB5B76FD675CC /* LibraryView.swift */,
 				41CCF7F27672DE93BB224544 /* MainTabView.swift */,
+				D87FEDE62DE25A364BA459EB /* RSVPReaderView.swift */,
 				09B12AD01A2E07F50180AE12 /* SettingsView.swift */,
+				12CF0D734731419D1826CFA3 /* TTSReaderView.swift */,
 				AF04517A156643C8DF566E41 /* URLInputView.swift */,
 			);
 			path = Views;
@@ -192,13 +204,17 @@
 				978DD387131EA24C94D45A37 /* AppSettings.swift in Sources */,
 				D871CFD243F2927C906331B0 /* Article.swift in Sources */,
 				DAEC2A9B9FAC3E4321217619 /* ArticleExtractor.swift in Sources */,
+				FB87BC77CAA48195747D9E2C /* ArticleStore.swift in Sources */,
 				E04D095E0F15D82538702F46 /* LibraryView.swift in Sources */,
 				F5ED42508B88CD6784D9C722 /* MainTabView.swift in Sources */,
+				379A296E0A62CC286FE7BD35 /* RSVPReaderView.swift in Sources */,
 				8866D4DEF514C554C6CCE031 /* ReadingMode.swift in Sources */,
 				F241D8AC5F849319854B0DF2 /* ReadingProgress.swift in Sources */,
 				3D143B017ECE9F505C63E256 /* SettingsView.swift in Sources */,
 				6C351CDCC751B2118EE21757 /* SpeedReaderApp.swift in Sources */,
+				23BC85A0BCD1ACA14FF20A73 /* TTSReaderView.swift in Sources */,
 				D5425EE53D5D48861CE4A255 /* TTSService.swift in Sources */,
+				0C1E27DCE7B0E9400BFD48CD /* TextTokenizer.swift in Sources */,
 				C36F300E6A47BC6F6AFED423 /* URLInputView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
