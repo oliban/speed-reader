@@ -2,7 +2,12 @@ import SwiftUI
 import SwiftData
 
 struct LibraryView: View {
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: \Article.lastRead, order: .reverse) private var articles: [Article]
+    @Query private var allProgress: [ReadingProgress]
+
+    @State private var articleToDelete: Article?
+    @State private var showDeleteConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -20,13 +25,50 @@ struct LibraryView: View {
                             .foregroundColor(.secondary)
                     }
                 } else {
-                    List(articles) { article in
-                        ArticleRowView(article: article)
+                    List {
+                        ForEach(articles) { article in
+                            ArticleRowView(article: article)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        articleToDelete = article
+                                        showDeleteConfirmation = true
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
+                        }
                     }
                 }
             }
             .navigationTitle("Library")
+            .alert("Delete Article?", isPresented: $showDeleteConfirmation) {
+                Button("Cancel", role: .cancel) {
+                    articleToDelete = nil
+                }
+                Button("Delete", role: .destructive) {
+                    if let article = articleToDelete {
+                        deleteArticle(article)
+                    }
+                    articleToDelete = nil
+                }
+            } message: {
+                if let article = articleToDelete {
+                    Text("Are you sure you want to delete \"\(article.title)\"? This action cannot be undone.")
+                }
+            }
         }
+    }
+
+    private func deleteArticle(_ article: Article) {
+        // Delete associated reading progress
+        let articleId = article.id
+        let progressToDelete = allProgress.filter { $0.articleId == articleId }
+        for progress in progressToDelete {
+            modelContext.delete(progress)
+        }
+
+        // Delete the article
+        modelContext.delete(article)
     }
 }
 
