@@ -3,6 +3,18 @@ import SwiftData
 
 struct LibraryView: View {
     @Query(sort: \Article.lastRead, order: .reverse) private var articles: [Article]
+    @State private var searchText = ""
+
+    private var filteredArticles: [Article] {
+        if searchText.isEmpty {
+            return articles
+        }
+        let lowercasedSearch = searchText.lowercased()
+        return articles.filter { article in
+            article.title.lowercased().contains(lowercasedSearch) ||
+            article.url.lowercased().contains(lowercasedSearch)
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -19,13 +31,26 @@ struct LibraryView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
+                } else if filteredArticles.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 60))
+                            .foregroundStyle(.gray)
+                        Text("No results")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        Text("No articles match your search")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
                 } else {
-                    List(articles) { article in
+                    List(filteredArticles) { article in
                         ArticleRowView(article: article)
                     }
                 }
             }
             .navigationTitle("Library")
+            .searchable(text: $searchText, prompt: "Search articles")
         }
     }
 }
