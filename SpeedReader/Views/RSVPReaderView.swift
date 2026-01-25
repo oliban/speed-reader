@@ -90,16 +90,22 @@ struct RSVPReaderView: View {
     }
 
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {
+            // Top spacer - weighted to give more space to word display
             Spacer()
+                .frame(minHeight: 60)
 
-            // Word display area
+            // Word display area - FIXED HEIGHT container for stable reading
             WordDisplayView(
                 rsvpWord: currentRSVPWord,
                 focusColor: focusColor
             )
+            .frame(maxWidth: .infinity)
+            .frame(height: 120) // Fixed height - word display never changes size
+            .padding(.vertical, 20)
 
             // Context view - collapsible section showing current paragraph
+            // Stays visible during playback if user has expanded it
             if tokenizedText != nil {
                 ContextView(
                     isExpanded: $showContext,
@@ -109,62 +115,71 @@ struct RSVPReaderView: View {
                     focusColor: focusColor
                 )
                 .padding(.horizontal, 20)
-                .padding(.top, 10)
+                .padding(.top, 8)
+                .opacity(isPlaying && !showContext ? 0.0 : 1.0)
+                .animation(.easeInOut(duration: 0.3), value: isPlaying)
             }
 
             Spacer()
+                .frame(minHeight: 40)
 
-            // Playback controls
-            HStack(spacing: 32) {
-                // Reset button
-                Button(action: reset) {
-                    Image(systemName: "backward.end.fill")
-                        .font(.title2)
-                        .frame(width: 44, height: 44)
+            // Controls section - fades during playback to reduce distraction
+            VStack(spacing: 12) {
+                // Playback controls - fade during playback except play/pause
+                HStack(spacing: 24) {
+                    // Reset button
+                    Button(action: reset) {
+                        Image(systemName: "backward.end.fill")
+                            .font(.body)
+                            .frame(width: 36, height: 36)
+                    }
+                    .disabled(state == .idle)
+                    .accessibilityLabel("Reset to beginning")
+                    .opacity(isPlaying ? 0.0 : 1.0)
+
+                    // Skip backward button (5 words)
+                    Button(action: skipBackward) {
+                        Image(systemName: "gobackward.5")
+                            .font(.body)
+                            .frame(width: 36, height: 36)
+                    }
+                    .disabled(state == .idle)
+                    .accessibilityLabel("Skip back 5 words")
+                    .opacity(isPlaying ? 0.0 : 1.0)
+
+                    // Play/Pause button - always visible (slightly faded when playing)
+                    Button(action: togglePlayPause) {
+                        Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                            .font(.title2)
+                            .frame(width: 50, height: 50)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(state == .idle)
+                    .accessibilityLabel(isPlaying ? "Pause" : "Play")
+                    .opacity(isPlaying ? 0.4 : 1.0)
+
+                    // Skip forward button (5 words)
+                    Button(action: skipForward) {
+                        Image(systemName: "goforward.5")
+                            .font(.body)
+                            .frame(width: 36, height: 36)
+                    }
+                    .disabled(state == .idle)
+                    .accessibilityLabel("Skip forward 5 words")
+                    .opacity(isPlaying ? 0.0 : 1.0)
                 }
-                .disabled(state == .idle)
-                .accessibilityLabel("Reset to beginning")
+                .animation(.easeInOut(duration: 0.3), value: isPlaying)
 
-                // Skip backward button (5 words)
-                Button(action: skipBackward) {
-                    Image(systemName: "gobackward.5")
-                        .font(.title2)
-                        .frame(width: 44, height: 44)
-                }
-                .disabled(state == .idle)
-                .accessibilityLabel("Skip back 5 words")
-
-                // Play/Pause button
-                Button(action: togglePlayPause) {
-                    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                        .font(.largeTitle)
-                        .frame(width: 60, height: 60)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(state == .idle)
-                .accessibilityLabel(isPlaying ? "Pause" : "Play")
-
-                // Skip forward button (5 words)
-                Button(action: skipForward) {
-                    Image(systemName: "goforward.5")
-                        .font(.title2)
-                        .frame(width: 44, height: 44)
-                }
-                .disabled(state == .idle)
-                .accessibilityLabel("Skip forward 5 words")
-            }
-            .padding(.vertical, 16)
-
-            // Speed slider
-            VStack(spacing: 8) {
-                Label("\(Int(currentSpeed)) WPM", systemImage: "speedometer")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
+                // Speed slider - hidden during playback
                 HStack(spacing: 8) {
-                    Text("120")
+                    Image(systemName: "speedometer")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+
+                    Text("\(Int(currentSpeed))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .frame(width: 32, alignment: .trailing)
 
                     Slider(value: $currentSpeed, in: 120...900, step: 10)
                         .onChange(of: currentSpeed) { _, newValue in
@@ -173,45 +188,52 @@ struct RSVPReaderView: View {
                         .accessibilityLabel("Reading speed")
                         .accessibilityValue("\(Int(currentSpeed)) words per minute")
 
-                    Text("900")
-                        .font(.caption)
+                    Text("WPM")
+                        .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
-                .padding(.horizontal, 32)
-            }
-            .padding(.vertical, 8)
+                .padding(.horizontal, 24)
+                .opacity(isPlaying ? 0.0 : 1.0)
+                .animation(.easeInOut(duration: 0.3), value: isPlaying)
 
-            // Progress indicator
-            if !words.isEmpty {
-                ProgressView(value: Double(currentWordIndex), total: Double(max(words.count - 1, 1)))
-                    .padding(.horizontal, 32)
-                    .accessibilityLabel("Reading progress")
-                    .accessibilityValue("Word \(currentWordIndex + 1) of \(words.count)")
+                // Progress indicator - always show progress bar, hide details when playing
+                if !words.isEmpty {
+                    VStack(spacing: 4) {
+                        ProgressView(value: Double(currentWordIndex), total: Double(max(words.count - 1, 1)))
+                            .accessibilityLabel("Reading progress")
+                            .accessibilityValue("Word \(currentWordIndex + 1) of \(words.count)")
 
-                Text("Word \(currentWordIndex + 1) of \(words.count)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 8)
+                        HStack(spacing: 8) {
+                            Text("\(currentWordIndex + 1)/\(words.count)")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
 
-                // State indicator
-                HStack(spacing: 4) {
-                    Image(systemName: stateIcon)
-                        .font(.caption2)
-                    Text(stateDescription)
-                        .font(.caption2)
+                            Text("·")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+
+                            HStack(spacing: 2) {
+                                Image(systemName: stateIcon)
+                                    .font(.caption2)
+                                Text(stateDescription)
+                                    .font(.caption2)
+                            }
+                            .foregroundStyle(.secondary)
+                        }
+                        .opacity(isPlaying ? 0.0 : 1.0)
+                        .animation(.easeInOut(duration: 0.3), value: isPlaying)
+                    }
+                    .padding(.horizontal, 24)
                 }
-                .foregroundStyle(.secondary)
-                .padding(.top, 4)
             }
-
-            Spacer()
+            .padding(.bottom, 16)
         }
         .navigationTitle("RSVP Reader")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             loadText()
             ensureSettingsExist()
-            loadProgress()
+            // Note: loadProgress() is called after words are populated in loadText()
             // Initialize currentSpeed from saved settings
             if let settings = settings {
                 currentSpeed = Double(settings.rsvpSpeed)
@@ -261,8 +283,9 @@ struct RSVPReaderView: View {
                 words = result.words
 
                 if !words.isEmpty {
-                    currentWordIndex = 0
                     state = .ready
+                    // Load progress after words are populated
+                    loadProgress()
                 }
             }
         }
@@ -295,15 +318,18 @@ struct RSVPReaderView: View {
     /// Loads saved reading progress for this article and RSVP mode
     private func loadProgress() {
         let articleId = article.id
+        // Fetch all progress for this article, then filter by mode in Swift code
+        // SwiftData predicates have issues with enum comparisons
         let descriptor = FetchDescriptor<ReadingProgress>(
             predicate: #Predicate { progress in
-                progress.articleId == articleId && progress.mode == .rsvp
+                progress.articleId == articleId
             }
         )
 
         do {
             let results = try modelContext.fetch(descriptor)
-            if let existingProgress = results.first {
+            // Filter for RSVP mode in Swift code instead of predicate
+            if let existingProgress = results.first(where: { $0.mode == .rsvp }) {
                 savedProgress = existingProgress
                 // Only restore position if within valid range
                 if existingProgress.currentWordIndex < words.count {
@@ -453,31 +479,51 @@ struct RSVPReaderView: View {
     }
 }
 
-/// Displays a single word with the focus letter highlighted
+/// Displays a single word with the focus letter highlighted at a fixed center position.
+/// Uses absolute positioning to ensure the focus letter is always at the exact same
+/// screen location regardless of word length.
 struct WordDisplayView: View {
     let rsvpWord: RSVPWord
     let focusColor: Color
 
+    // Font configuration
+    private let fontSize: CGFloat = 48
+
+    // Monospaced font character width is approximately 0.6 * fontSize
+    private var charWidth: CGFloat { fontSize * 0.6 }
+
     var body: some View {
-        HStack(spacing: 0) {
-            // Left part - normal color, right-aligned
-            Text(rsvpWord.leftPart)
-                .font(.system(size: 40, weight: .medium, design: .monospaced))
-                .foregroundColor(.primary)
-                .frame(minWidth: 100, alignment: .trailing)
+        GeometryReader { geometry in
+            let centerX = geometry.size.width / 2
+            let centerY = geometry.size.height / 2
+            // Half the character width - distance from center to edge of focus letter
+            let halfChar = charWidth / 2
 
-            // Focus letter - accent color
-            Text(rsvpWord.focusLetter)
-                .font(.system(size: 40, weight: .bold, design: .monospaced))
-                .foregroundColor(focusColor)
+            ZStack {
+                // Focus letter - always at exact center of screen
+                Text(rsvpWord.focusLetter)
+                    .font(.system(size: fontSize, weight: .bold, design: .monospaced))
+                    .foregroundColor(focusColor)
+                    .fixedSize()
+                    .position(x: centerX, y: centerY)
 
-            // Right part - normal color, left-aligned
-            Text(rsvpWord.rightPart)
-                .font(.system(size: 40, weight: .medium, design: .monospaced))
-                .foregroundColor(.primary)
-                .frame(minWidth: 100, alignment: .leading)
+                // Left part - right-aligned, positioned so right edge meets left edge of focus letter
+                Text(rsvpWord.leftPart)
+                    .font(.system(size: fontSize, weight: .medium, design: .monospaced))
+                    .foregroundColor(.primary)
+                    .fixedSize()
+                    .frame(maxWidth: centerX - halfChar, alignment: .trailing)
+                    .position(x: (centerX - halfChar) / 2, y: centerY)
+
+                // Right part - left-aligned, positioned so left edge meets right edge of focus letter
+                Text(rsvpWord.rightPart)
+                    .font(.system(size: fontSize, weight: .medium, design: .monospaced))
+                    .foregroundColor(.primary)
+                    .fixedSize()
+                    .frame(maxWidth: centerX - halfChar, alignment: .leading)
+                    .position(x: centerX + halfChar + (centerX - halfChar) / 2, y: centerY)
+            }
         }
-        .padding(.horizontal, 20)
     }
 }
 

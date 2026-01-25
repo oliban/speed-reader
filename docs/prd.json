@@ -223,7 +223,7 @@
         "Resume continues from position"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "blockedBy": ["RSVP-003", "RSVP-004"],
       "isBasePlate": false
     },
@@ -239,7 +239,7 @@
         "Word count display"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "blockedBy": ["RSVP-005"],
       "isBasePlate": false
     },
@@ -254,7 +254,7 @@
         "Article passed to reader view"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "blockedBy": ["EXTRACT-001", "RSVP-006"],
       "isBasePlate": false
     },
@@ -376,7 +376,7 @@
         "Survives app restart"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "blockedBy": ["LIB-001", "RSVP-006", "TTS-003"],
       "isBasePlate": false
     },
@@ -436,7 +436,7 @@
         "Color persists"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "blockedBy": ["SETTINGS-001"],
       "isBasePlate": false
     },
@@ -451,7 +451,7 @@
         "Selection persists"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "blockedBy": ["SETTINGS-001", "TTS-001"],
       "isBasePlate": false
     },
@@ -465,7 +465,7 @@
         "Applied to new TTS sessions"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "blockedBy": ["SETTINGS-001"],
       "isBasePlate": false
     },
@@ -480,7 +480,7 @@
         "Uses TokenizedText mapping"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "blockedBy": ["RSVP-006"],
       "isBasePlate": false
     },
@@ -495,7 +495,7 @@
         "RSVP readable in both modes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "blockedBy": ["SETTINGS-001"],
       "isBasePlate": false
     },
@@ -510,7 +510,7 @@
         "Dynamic Type support"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "blockedBy": ["RSVP-006", "TTS-003", "LIB-002", "SETTINGS-001"],
       "isBasePlate": false
     }

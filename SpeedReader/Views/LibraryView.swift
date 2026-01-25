@@ -9,6 +9,10 @@ struct LibraryView: View {
     @State private var articleToDelete: Article?
     @State private var showDeleteConfirmation = false
     @State private var searchText = ""
+    @State private var selectedArticle: Article?
+    @State private var showModeSelection = false
+    @State private var navigateToRSVP = false
+    @State private var navigateToTTS = false
 
     private var filteredArticles: [Article] {
         if searchText.isEmpty {
@@ -36,6 +40,11 @@ struct LibraryView: View {
                     List {
                         ForEach(filteredArticles) { article in
                             ArticleRowView(article: article)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    selectedArticle = article
+                                    showModeSelection = true
+                                }
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                     Button(role: .destructive) {
                                         articleToDelete = article
@@ -63,6 +72,30 @@ struct LibraryView: View {
             } message: {
                 if let article = articleToDelete {
                     Text("Are you sure you want to delete \"\(article.title)\"? This action cannot be undone.")
+                }
+            }
+            .sheet(isPresented: $showModeSelection) {
+                ModeSelectionSheet(
+                    article: selectedArticle,
+                    onRSVPSelected: {
+                        showModeSelection = false
+                        navigateToRSVP = true
+                    },
+                    onTTSSelected: {
+                        showModeSelection = false
+                        navigateToTTS = true
+                    }
+                )
+                .presentationDetents([.medium])
+            }
+            .navigationDestination(isPresented: $navigateToRSVP) {
+                if let article = selectedArticle {
+                    RSVPReaderView(article: article)
+                }
+            }
+            .navigationDestination(isPresented: $navigateToTTS) {
+                if let article = selectedArticle {
+                    TTSReaderView(article: article)
                 }
             }
         }
