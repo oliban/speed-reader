@@ -28,7 +28,7 @@ struct SettingsView: View {
                                     get: { Double(settings.rsvpSpeed) },
                                     set: { settings.rsvpSpeed = Int($0) }
                                 ),
-                                in: 100...900,
+                                in: 120...900,
                                 step: 10
                             )
                         }
