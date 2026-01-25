@@ -2,19 +2,12 @@ import SwiftUI
 import SwiftData
 
 struct LibraryView: View {
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: \Article.lastRead, order: .reverse) private var articles: [Article]
-    @State private var searchText = ""
+    @Query private var allProgress: [ReadingProgress]
 
-    private var filteredArticles: [Article] {
-        if searchText.isEmpty {
-            return articles
-        }
-        let lowercasedSearch = searchText.lowercased()
-        return articles.filter { article in
-            article.title.lowercased().contains(lowercasedSearch) ||
-            article.url.lowercased().contains(lowercasedSearch)
-        }
-    }
+    @State private var articleToDelete: Article?
+    @State private var showDeleteConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -31,27 +24,51 @@ struct LibraryView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
-                } else if filteredArticles.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "magnifyingglass")
-                            .font(.system(size: 60))
-                            .foregroundStyle(.gray)
-                        Text("No results")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                        Text("No articles match your search")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
                 } else {
-                    List(filteredArticles) { article in
-                        ArticleRowView(article: article)
+                    List {
+                        ForEach(articles) { article in
+                            ArticleRowView(article: article)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        articleToDelete = article
+                                        showDeleteConfirmation = true
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
+                        }
                     }
                 }
             }
             .navigationTitle("Library")
-            .searchable(text: $searchText, prompt: "Search articles")
+            .alert("Delete Article?", isPresented: $showDeleteConfirmation) {
+                Button("Cancel", role: .cancel) {
+                    articleToDelete = nil
+                }
+                Button("Delete", role: .destructive) {
+                    if let article = articleToDelete {
+                        deleteArticle(article)
+                    }
+                    articleToDelete = nil
+                }
+            } message: {
+                if let article = articleToDelete {
+                    Text("Are you sure you want to delete \"\(article.title)\"? This action cannot be undone.")
+                }
+            }
         }
+    }
+
+    private func deleteArticle(_ article: Article) {
+        // Delete associated reading progress
+        let articleId = article.id
+        let progressToDelete = allProgress.filter { $0.articleId == articleId }
+        for progress in progressToDelete {
+            modelContext.delete(progress)
+        }
+
+        // Delete the article
+        modelContext.delete(article)
     }
 }
 
