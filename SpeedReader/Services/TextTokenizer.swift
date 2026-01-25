@@ -12,6 +12,18 @@ struct TokenizedText {
     let paragraphs: [String]
 }
 
+/// Represents a word split into parts for RSVP display
+struct RSVPWord {
+    /// The part of the word before the focus letter
+    let leftPart: String
+
+    /// The focus letter (middle character)
+    let focusLetter: String
+
+    /// The part of the word after the focus letter
+    let rightPart: String
+}
+
 /// Service for tokenizing text into words and managing paragraph context
 actor TextTokenizer {
 
@@ -56,5 +68,30 @@ actor TextTokenizer {
         }
 
         return paragraphsData
+    }
+
+    /// Calculates the focus index (middle character position) for a word
+    /// - Parameter word: The word to calculate the focus index for
+    /// - Returns: The index of the focus letter (floor of word.count / 2)
+    func getFocusIndex(for word: String) -> Int {
+        return word.count / 2
+    }
+
+    /// Splits a word into left part, focus letter, and right part for RSVP display
+    /// - Parameter word: The word to split
+    /// - Returns: RSVPWord containing the three parts
+    func splitWord(_ word: String) -> RSVPWord {
+        let focusIndex = getFocusIndex(for: word)
+        let characters = Array(word)
+
+        let leftPart = String(characters[..<focusIndex])
+        let focusLetter = String(characters[focusIndex])
+        let rightPart = String(characters[(focusIndex + 1)...])
+
+        return RSVPWord(
+            leftPart: leftPart,
+            focusLetter: focusLetter,
+            rightPart: rightPart
+        )
     }
 }
