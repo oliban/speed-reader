@@ -32,6 +32,22 @@ struct LibraryView: View {
 
 struct ArticleRowView: View {
     let article: Article
+    @Query private var allProgress: [ReadingProgress]
+
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter
+    }()
+
+    init(article: Article) {
+        self.article = article
+        let articleId = article.id
+        _allProgress = Query(filter: #Predicate<ReadingProgress> { progress in
+            progress.articleId == articleId
+        })
+    }
 
     private var urlDomain: String {
         if let url = URL(string: article.url),
@@ -42,10 +58,16 @@ struct ArticleRowView: View {
     }
 
     private var formattedDate: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        return formatter.string(from: article.dateAdded)
+        Self.dateFormatter.string(from: article.dateAdded)
+    }
+
+    private var progressPercentage: String {
+        guard let progress = allProgress.first,
+              progress.totalWords > 0 else {
+            return "0%"
+        }
+        let percentage = (Double(progress.currentWordIndex) / Double(progress.totalWords)) * 100
+        return "\(Int(percentage))%"
     }
 
     var body: some View {
@@ -61,7 +83,7 @@ struct ArticleRowView: View {
 
                 Spacer()
 
-                Text("0%")
+                Text(progressPercentage)
                     .font(.subheadline)
                     .foregroundColor(.blue)
             }
