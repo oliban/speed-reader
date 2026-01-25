@@ -12,6 +12,7 @@
 		8866D4DEF514C554C6CCE031 /* ReadingMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA3E69F0F620CE67BF62A3B8 /* ReadingMode.swift */; };
 		978DD387131EA24C94D45A37 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7910161B57B9E90098EA51A0 /* AppSettings.swift */; };
 		C36F300E6A47BC6F6AFED423 /* URLInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF04517A156643C8DF566E41 /* URLInputView.swift */; };
+		D5425EE53D5D48861CE4A255 /* TTSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E25051EAFD3C9756C84A8F37 /* TTSService.swift */; };
 		D871CFD243F2927C906331B0 /* Article.swift in Sources */ = {isa = PBXBuildFile; fileRef = EABBEC5A21FFAF3842C2635E /* Article.swift */; };
 		DAEC2A9B9FAC3E4321217619 /* ArticleExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CD761596D5233966D5B799 /* ArticleExtractor.swift */; };
 		E04D095E0F15D82538702F46 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE8E8320CCDFB5B76FD675CC /* LibraryView.swift */; };
@@ -32,6 +33,7 @@
 		AF04517A156643C8DF566E41 /* URLInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLInputView.swift; sourceTree = "<group>"; };
 		C8D06F4A2C7148E86BFD832D /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		CE8E8320CCDFB5B76FD675CC /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
+		E25051EAFD3C9756C84A8F37 /* TTSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSService.swift; sourceTree = "<group>"; };
 		EABBEC5A21FFAF3842C2635E /* Article.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Article.swift; sourceTree = "<group>"; };
 		FA3E69F0F620CE67BF62A3B8 /* ReadingMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingMode.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -61,6 +63,7 @@
 			children = (
 				C8D06F4A2C7148E86BFD832D /* .gitkeep */,
 				28CD761596D5233966D5B799 /* ArticleExtractor.swift */,
+				E25051EAFD3C9756C84A8F37 /* TTSService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -195,6 +198,7 @@
 				F241D8AC5F849319854B0DF2 /* ReadingProgress.swift in Sources */,
 				3D143B017ECE9F505C63E256 /* SettingsView.swift in Sources */,
 				6C351CDCC751B2118EE21757 /* SpeedReaderApp.swift in Sources */,
+				D5425EE53D5D48861CE4A255 /* TTSService.swift in Sources */,
 				C36F300E6A47BC6F6AFED423 /* URLInputView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -331,6 +335,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_GENERATION_MODE = GeneratedFile;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIBackgroundModes = audio;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -357,6 +362,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_GENERATION_MODE = GeneratedFile;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIBackgroundModes = audio;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
