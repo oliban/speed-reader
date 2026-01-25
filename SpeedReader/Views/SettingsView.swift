@@ -41,21 +41,17 @@ struct SettingsView: View {
 
                     // TTS Settings Section
                     Section {
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text("Speed Multiplier")
-                                Spacer()
-                                Text(String(format: "%.1fx", settings.ttsSpeedMultiplier))
-                                    .foregroundColor(.secondary)
-                            }
-                            Slider(
-                                value: Binding(
-                                    get: { settings.ttsSpeedMultiplier },
-                                    set: { settings.ttsSpeedMultiplier = $0 }
-                                ),
-                                in: 0.5...4.0,
-                                step: 0.1
-                            )
+                        Picker("Default Speed", selection: Binding(
+                            get: { settings.ttsSpeedMultiplier },
+                            set: { settings.ttsSpeedMultiplier = $0 }
+                        )) {
+                            Text("0.5x").tag(0.5)
+                            Text("0.75x").tag(0.75)
+                            Text("1x").tag(1.0)
+                            Text("1.5x").tag(1.5)
+                            Text("2x").tag(2.0)
+                            Text("3x").tag(3.0)
+                            Text("4x").tag(4.0)
                         }
 
                         NavigationLink {
@@ -74,7 +70,7 @@ struct SettingsView: View {
                     } header: {
                         Text("Text-to-Speech")
                     } footer: {
-                        Text("Configure audio reading preferences")
+                        Text("Default speed applied to new TTS sessions")
                     }
 
                     // Appearance Settings Section
