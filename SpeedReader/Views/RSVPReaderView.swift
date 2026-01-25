@@ -22,6 +22,8 @@ struct RSVPReaderView: View {
     @State private var state: RSVPState = .idle
     @State private var timer: Timer?
     @State private var currentSpeed: Double = 300
+    @State private var showContext: Bool = false
+    @State private var tokenizedText: TokenizedText?
 
     private var settings: AppSettings? {
         settingsArray.first
@@ -49,6 +51,41 @@ struct RSVPReaderView: View {
         state == .playing
     }
 
+    /// Returns the current paragraph index for the current word
+    private var currentParagraphIndex: Int? {
+        guard let tokenizedText = tokenizedText,
+              currentWordIndex < tokenizedText.paragraphIndices.count else {
+            return nil
+        }
+        return tokenizedText.paragraphIndices[currentWordIndex]
+    }
+
+    /// Returns the current paragraph text
+    private var currentParagraph: String? {
+        guard let tokenizedText = tokenizedText,
+              let paragraphIndex = currentParagraphIndex,
+              paragraphIndex < tokenizedText.paragraphs.count else {
+            return nil
+        }
+        return tokenizedText.paragraphs[paragraphIndex]
+    }
+
+    /// Returns the index of the current word within its paragraph
+    private var wordIndexInParagraph: Int? {
+        guard let tokenizedText = tokenizedText,
+              let currentParagraphIdx = currentParagraphIndex else {
+            return nil
+        }
+
+        var indexInParagraph = 0
+        for i in 0..<currentWordIndex {
+            if tokenizedText.paragraphIndices[i] == currentParagraphIdx {
+                indexInParagraph += 1
+            }
+        }
+        return indexInParagraph
+    }
+
     var body: some View {
         VStack {
             Spacer()
@@ -58,6 +95,19 @@ struct RSVPReaderView: View {
                 rsvpWord: currentRSVPWord,
                 focusColor: focusColor
             )
+
+            // Context view - collapsible section showing current paragraph
+            if tokenizedText != nil {
+                ContextView(
+                    isExpanded: $showContext,
+                    currentParagraph: currentParagraph,
+                    currentWord: currentWord,
+                    wordIndexInParagraph: wordIndexInParagraph,
+                    focusColor: focusColor
+                )
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
+            }
 
             Spacer()
 
@@ -167,12 +217,21 @@ struct RSVPReaderView: View {
     /// Loads text and transitions from IDLE to READY
     private func loadText() {
         let text = article.content.isEmpty ? article.title : article.content
-        words = text.components(separatedBy: .whitespacesAndNewlines)
-            .filter { !$0.isEmpty }
 
-        if !words.isEmpty {
-            currentWordIndex = 0
-            state = .ready
+        // Use TextTokenizer to tokenize text and get paragraph mappings
+        Task {
+            let tokenizer = TextTokenizer()
+            let result = await tokenizer.tokenize(text)
+
+            await MainActor.run {
+                tokenizedText = result
+                words = result.words
+
+                if !words.isEmpty {
+                    currentWordIndex = 0
+                    state = .ready
+                }
+            }
         }
     }
 
@@ -335,6 +394,91 @@ struct WordDisplayView: View {
                 .frame(minWidth: 100, alignment: .leading)
         }
         .padding(.horizontal, 20)
+    }
+}
+
+/// Collapsible context view showing the current paragraph with the current word highlighted
+struct ContextView: View {
+    @Binding var isExpanded: Bool
+    let currentParagraph: String?
+    let currentWord: String
+    let wordIndexInParagraph: Int?
+    let focusColor: Color
+
+    var body: some View {
+        DisclosureGroup(
+            isExpanded: $isExpanded,
+            content: {
+                if let paragraph = currentParagraph {
+                    HighlightedParagraphView(
+                        paragraph: paragraph,
+                        currentWord: currentWord,
+                        wordIndexInParagraph: wordIndexInParagraph,
+                        highlightColor: focusColor
+                    )
+                    .padding(.top, 8)
+                } else {
+                    Text("No context available")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.top, 8)
+                }
+            },
+            label: {
+                HStack {
+                    Image(systemName: "text.alignleft")
+                        .foregroundColor(.secondary)
+                    Text("Context")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            }
+        )
+        .tint(.secondary)
+    }
+}
+
+/// View that displays a paragraph with the current word highlighted
+struct HighlightedParagraphView: View {
+    let paragraph: String
+    let currentWord: String
+    let wordIndexInParagraph: Int?
+    let highlightColor: Color
+
+    var body: some View {
+        let words = paragraph.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+
+        // Build attributed text with highlighted word
+        Text(buildAttributedString(words: words))
+            .font(.system(size: 14))
+            .lineSpacing(4)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(Color(.systemGray6))
+            .cornerRadius(8)
+    }
+
+    private func buildAttributedString(words: [String]) -> AttributedString {
+        var result = AttributedString()
+
+        for (index, word) in words.enumerated() {
+            var attributedWord = AttributedString(word)
+
+            // Highlight the current word
+            if let targetIndex = wordIndexInParagraph, index == targetIndex {
+                attributedWord.backgroundColor = highlightColor.opacity(0.3)
+                attributedWord.foregroundColor = .primary
+            }
+
+            result.append(attributedWord)
+
+            // Add space between words (except after the last word)
+            if index < words.count - 1 {
+                result.append(AttributedString(" "))
+            }
+        }
+
+        return result
     }
 }
 
