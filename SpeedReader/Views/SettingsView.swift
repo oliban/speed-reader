@@ -71,6 +71,15 @@ struct SettingsView: View {
 
                     // Appearance Settings Section
                     Section {
+                        Picker("Theme", selection: Binding(
+                            get: { settings.appearanceMode },
+                            set: { settings.appearanceMode = $0 }
+                        )) {
+                            Text("System").tag("system")
+                            Text("Light").tag("light")
+                            Text("Dark").tag("dark")
+                        }
+
                         ColorPicker("Focus Color", selection: $focusColor)
                             .onChange(of: focusColor) { _, newColor in
                                 settings.focusColor = newColor.toHex() ?? "#FF3B30"
