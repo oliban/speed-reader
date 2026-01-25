@@ -57,4 +57,29 @@ actor TextTokenizer {
 
         return paragraphsData
     }
+
+    /// Calculates the base delay in milliseconds for a given WPM (words per minute)
+    /// - Parameter wpm: Words per minute reading speed
+    /// - Returns: Delay in milliseconds per word
+    func getDelay(wpm: Int) -> Double {
+        return 60000.0 / Double(wpm)
+    }
+
+    /// Calculates the delay multiplier based on punctuation at the end of a word
+    /// - Parameter word: The word to check for punctuation
+    /// - Returns: Multiplier value (1.5x for .!?, 1.2x for ,:;, 1.0x otherwise)
+    func getDelayMultiplier(for word: String) -> Double {
+        guard let lastChar = word.last else {
+            return 1.0
+        }
+
+        switch lastChar {
+        case ".", "!", "?":
+            return 1.5
+        case ",", ":", ";":
+            return 1.2
+        default:
+            return 1.0
+        }
+    }
 }
