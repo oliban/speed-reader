@@ -75,6 +75,22 @@ struct SettingsView: View {
                             .onChange(of: focusColor) { _, newColor in
                                 settings.focusColor = newColor.toHex() ?? "#FF3B30"
                             }
+
+                        // Preview of focus letter
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Preview")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+
+                            HStack(spacing: 0) {
+                                Spacer()
+                                FocusLetterPreview(word: "Reading", focusColor: focusColor)
+                                Spacer()
+                            }
+                            .padding(.vertical, 12)
+                            .background(Color(.systemBackground))
+                            .cornerRadius(8)
+                        }
                     } header: {
                         Text("Appearance")
                     } footer: {
@@ -140,6 +156,35 @@ extension Color {
             b = components[0]
         }
         return String(format: "#%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
+    }
+}
+
+// MARK: - Focus Letter Preview
+
+struct FocusLetterPreview: View {
+    let word: String
+    let focusColor: Color
+
+    private var focusIndex: Int {
+        // Standard ORP (Optimal Recognition Point) calculation
+        let length = word.count
+        switch length {
+        case 1: return 0
+        case 2...5: return 1
+        case 6...9: return 2
+        case 10...13: return 3
+        default: return 4
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(word.enumerated()), id: \.offset) { index, character in
+                Text(String(character))
+                    .font(.system(size: 32, weight: .medium, design: .monospaced))
+                    .foregroundColor(index == focusIndex ? focusColor : .primary)
+            }
+        }
     }
 }
 
