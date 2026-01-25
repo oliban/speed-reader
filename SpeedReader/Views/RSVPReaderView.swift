@@ -115,76 +115,93 @@ struct RSVPReaderView: View {
             Spacer()
 
             // Playback controls
-            HStack(spacing: 30) {
+            HStack(spacing: 32) {
                 // Reset button
                 Button(action: reset) {
                     Image(systemName: "backward.end.fill")
                         .font(.title2)
+                        .frame(width: 44, height: 44)
                 }
                 .disabled(state == .idle)
+                .accessibilityLabel("Reset to beginning")
 
                 // Skip backward button (5 words)
                 Button(action: skipBackward) {
-                    Image(systemName: "backward.fill")
+                    Image(systemName: "gobackward.5")
                         .font(.title2)
+                        .frame(width: 44, height: 44)
                 }
                 .disabled(state == .idle)
+                .accessibilityLabel("Skip back 5 words")
 
                 // Play/Pause button
                 Button(action: togglePlayPause) {
                     Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                         .font(.largeTitle)
+                        .frame(width: 60, height: 60)
                 }
+                .buttonStyle(.borderedProminent)
                 .disabled(state == .idle)
+                .accessibilityLabel(isPlaying ? "Pause" : "Play")
 
                 // Skip forward button (5 words)
                 Button(action: skipForward) {
-                    Image(systemName: "forward.fill")
+                    Image(systemName: "goforward.5")
                         .font(.title2)
+                        .frame(width: 44, height: 44)
                 }
                 .disabled(state == .idle)
+                .accessibilityLabel("Skip forward 5 words")
             }
-            .padding(.vertical, 20)
+            .padding(.vertical, 16)
 
             // Speed slider
-            VStack(spacing: 4) {
-                Text("\(Int(currentSpeed)) WPM")
+            VStack(spacing: 8) {
+                Label("\(Int(currentSpeed)) WPM", systemImage: "speedometer")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
 
-                HStack {
+                HStack(spacing: 8) {
                     Text("120")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
 
                     Slider(value: $currentSpeed, in: 120...900, step: 10)
                         .onChange(of: currentSpeed) { _, newValue in
                             updateSpeed(to: Int(newValue))
                         }
+                        .accessibilityLabel("Reading speed")
+                        .accessibilityValue("\(Int(currentSpeed)) words per minute")
 
                     Text("900")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
-                .padding(.horizontal, 40)
+                .padding(.horizontal, 32)
             }
-            .padding(.vertical, 10)
+            .padding(.vertical, 8)
 
             // Progress indicator
             if !words.isEmpty {
                 ProgressView(value: Double(currentWordIndex), total: Double(max(words.count - 1, 1)))
-                    .padding(.horizontal, 40)
+                    .padding(.horizontal, 32)
+                    .accessibilityLabel("Reading progress")
+                    .accessibilityValue("Word \(currentWordIndex + 1) of \(words.count)")
 
                 Text("Word \(currentWordIndex + 1) of \(words.count)")
                     .font(.caption)
-                    .foregroundColor(.secondary)
-                    .padding(.top, 4)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 8)
 
-                // State indicator for debugging/visibility
-                Text(stateDescription)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                    .padding(.top, 2)
+                // State indicator
+                HStack(spacing: 4) {
+                    Image(systemName: stateIcon)
+                        .font(.caption2)
+                    Text(stateDescription)
+                        .font(.caption2)
+                }
+                .foregroundStyle(.secondary)
+                .padding(.top, 4)
             }
 
             Spacer()
@@ -214,6 +231,17 @@ struct RSVPReaderView: View {
         case .playing: return "Playing"
         case .paused: return "Paused"
         case .finished: return "Finished"
+        }
+    }
+
+    /// SF Symbol icon for current state
+    private var stateIcon: String {
+        switch state {
+        case .idle: return "circle"
+        case .ready: return "circle.fill"
+        case .playing: return "play.circle.fill"
+        case .paused: return "pause.circle.fill"
+        case .finished: return "checkmark.circle.fill"
         }
     }
 

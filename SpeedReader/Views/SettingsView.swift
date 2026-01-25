@@ -19,10 +19,12 @@ struct SettingsView: View {
                     Section {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
-                                Text("Speed")
+                                Label("Speed", systemImage: "speedometer")
+                                    .font(.body)
                                 Spacer()
                                 Text("\(settings.rsvpSpeed) WPM")
-                                    .foregroundColor(.secondary)
+                                    .font(.body)
+                                    .foregroundStyle(.secondary)
                             }
                             Slider(
                                 value: Binding(
@@ -32,16 +34,19 @@ struct SettingsView: View {
                                 in: 120...900,
                                 step: 10
                             )
+                            .accessibilityLabel("Reading speed")
+                            .accessibilityValue("\(settings.rsvpSpeed) words per minute")
                         }
                     } header: {
-                        Text("RSVP")
+                        Label("RSVP", systemImage: "text.word.spacing")
                     } footer: {
                         Text("Configure Rapid Serial Visual Presentation reading speed")
+                            .font(.caption)
                     }
 
                     // TTS Settings Section
                     Section {
-                        Picker("Default Speed", selection: Binding(
+                        Picker(selection: Binding(
                             get: { settings.ttsSpeedMultiplier },
                             set: { settings.ttsSpeedMultiplier = $0 }
                         )) {
@@ -52,6 +57,9 @@ struct SettingsView: View {
                             Text("2x").tag(2.0)
                             Text("3x").tag(3.0)
                             Text("4x").tag(4.0)
+                        } label: {
+                            Label("Default Speed", systemImage: "gauge.with.dots.needle.33percent")
+                                .font(.body)
                         }
 
                         NavigationLink {
@@ -61,39 +69,49 @@ struct SettingsView: View {
                             ))
                         } label: {
                             HStack {
-                                Text("Voice")
+                                Label("Voice", systemImage: "person.wave.2")
+                                    .font(.body)
                                 Spacer()
                                 Text(voiceDisplayName(for: settings.selectedVoiceId))
-                                    .foregroundColor(.secondary)
+                                    .font(.body)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                     } header: {
-                        Text("Text-to-Speech")
+                        Label("Text-to-Speech", systemImage: "speaker.wave.3")
                     } footer: {
                         Text("Default speed applied to new TTS sessions")
+                            .font(.caption)
                     }
 
                     // Appearance Settings Section
                     Section {
-                        Picker("Theme", selection: Binding(
+                        Picker(selection: Binding(
                             get: { settings.appearanceMode },
                             set: { settings.appearanceMode = $0 }
                         )) {
-                            Text("System").tag("system")
-                            Text("Light").tag("light")
-                            Text("Dark").tag("dark")
+                            Label("System", systemImage: "circle.lefthalf.filled").tag("system")
+                            Label("Light", systemImage: "sun.max").tag("light")
+                            Label("Dark", systemImage: "moon").tag("dark")
+                        } label: {
+                            Label("Theme", systemImage: "paintbrush")
+                                .font(.body)
                         }
 
-                        ColorPicker("Focus Color", selection: $focusColor)
-                            .onChange(of: focusColor) { _, newColor in
-                                settings.focusColor = newColor.toHex() ?? "#FF3B30"
-                            }
+                        ColorPicker(selection: $focusColor) {
+                            Label("Focus Color", systemImage: "eyedropper")
+                                .font(.body)
+                        }
+                        .onChange(of: focusColor) { _, newColor in
+                            settings.focusColor = newColor.toHex() ?? "#FF3B30"
+                        }
+                        .accessibilityLabel("Focus color picker")
 
                         // Preview of focus letter
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Preview")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
 
                             HStack(spacing: 0) {
                                 Spacer()
@@ -104,10 +122,13 @@ struct SettingsView: View {
                             .background(Color(.systemBackground))
                             .cornerRadius(8)
                         }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("Focus letter preview showing the word Reading")
                     } header: {
-                        Text("Appearance")
+                        Label("Appearance", systemImage: "paintpalette")
                     } footer: {
                         Text("Customize the reading interface appearance")
+                            .font(.caption)
                     }
                 }
             }

@@ -25,29 +25,13 @@ struct LibraryView: View {
         NavigationStack {
             Group {
                 if articles.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "books.vertical")
-                            .font(.system(size: 60))
-                            .foregroundStyle(.gray)
-                        Text("No saved articles")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
+                    ContentUnavailableView {
+                        Label("No Saved Articles", systemImage: "books.vertical")
+                    } description: {
                         Text("Articles you save will appear here")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
                     }
                 } else if filteredArticles.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "magnifyingglass")
-                            .font(.system(size: 60))
-                            .foregroundStyle(.gray)
-                        Text("No results")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                        Text("No articles match your search")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
+                    ContentUnavailableView.search(text: searchText)
                 } else {
                     List {
                         ForEach(filteredArticles) { article in
@@ -143,23 +127,36 @@ struct ArticleRowView: View {
                 .font(.headline)
                 .lineLimit(2)
 
-            HStack {
+            HStack(spacing: 8) {
+                Image(systemName: "link")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
                 Text(urlDomain)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
 
                 Spacer()
 
-                Text(progressPercentage)
-                    .font(.subheadline)
-                    .foregroundColor(.blue)
+                Label(progressPercentage, systemImage: "book.pages")
+                    .font(.body)
+                    .foregroundStyle(Color.accentColor)
+                    .labelStyle(.titleAndIcon)
             }
 
-            Text("Added: \(formattedDate)")
-                .font(.caption)
-                .foregroundColor(.secondary)
+            HStack(spacing: 4) {
+                Image(systemName: "calendar")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+                Text("Added: \(formattedDate)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 8)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(article.title), \(urlDomain), \(progressPercentage) complete, added \(formattedDate)")
     }
 }
 
