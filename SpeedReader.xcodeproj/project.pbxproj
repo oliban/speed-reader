@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0C1E27DCE7B0E9400BFD48CD /* TextTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4158AC2B325DE25FED8F54E /* TextTokenizer.swift */; };
 		3D143B017ECE9F505C63E256 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09B12AD01A2E07F50180AE12 /* SettingsView.swift */; };
 		6C351CDCC751B2118EE21757 /* SpeedReaderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AD364A66F4F9A5FCC5E2DDE /* SpeedReaderApp.swift */; };
 		8866D4DEF514C554C6CCE031 /* ReadingMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA3E69F0F620CE67BF62A3B8 /* ReadingMode.swift */; };
@@ -33,6 +34,7 @@
 		C8D06F4A2C7148E86BFD832D /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		CE8E8320CCDFB5B76FD675CC /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
 		EABBEC5A21FFAF3842C2635E /* Article.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Article.swift; sourceTree = "<group>"; };
+		F4158AC2B325DE25FED8F54E /* TextTokenizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextTokenizer.swift; sourceTree = "<group>"; };
 		FA3E69F0F620CE67BF62A3B8 /* ReadingMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingMode.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -61,6 +63,7 @@
 			children = (
 				C8D06F4A2C7148E86BFD832D /* .gitkeep */,
 				28CD761596D5233966D5B799 /* ArticleExtractor.swift */,
+				F4158AC2B325DE25FED8F54E /* TextTokenizer.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -195,6 +198,7 @@
 				F241D8AC5F849319854B0DF2 /* ReadingProgress.swift in Sources */,
 				3D143B017ECE9F505C63E256 /* SettingsView.swift in Sources */,
 				6C351CDCC751B2118EE21757 /* SpeedReaderApp.swift in Sources */,
+				0C1E27DCE7B0E9400BFD48CD /* TextTokenizer.swift in Sources */,
 				C36F300E6A47BC6F6AFED423 /* URLInputView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
