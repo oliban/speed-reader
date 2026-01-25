@@ -12,6 +12,18 @@ struct TokenizedText {
     let paragraphs: [String]
 }
 
+/// Represents a word split into parts for RSVP display
+struct RSVPWord {
+    /// The part of the word before the focus letter
+    let leftPart: String
+
+    /// The focus letter (middle character)
+    let focusLetter: String
+
+    /// The part of the word after the focus letter
+    let rightPart: String
+}
+
 /// Service for tokenizing text into words and managing paragraph context
 actor TextTokenizer {
 
@@ -58,28 +70,31 @@ actor TextTokenizer {
         return paragraphsData
     }
 
-    /// Calculates the base delay in milliseconds for a given WPM (words per minute)
-    /// - Parameter wpm: Words per minute reading speed
-    /// - Returns: Delay in milliseconds per word
-    func getDelay(wpm: Int) -> Double {
-        return 60000.0 / Double(wpm)
+    /// Calculates the focus index (middle character position) for a word
+    /// - Parameter word: The word to calculate the focus index for
+    /// - Returns: The index of the focus letter (floor of word.count / 2)
+    func getFocusIndex(for word: String) -> Int {
+        return word.count / 2
     }
 
-    /// Calculates the delay multiplier based on punctuation at the end of a word
-    /// - Parameter word: The word to check for punctuation
-    /// - Returns: Multiplier value (1.5x for .!?, 1.2x for ,:;, 1.0x otherwise)
-    func getDelayMultiplier(for word: String) -> Double {
-        guard let lastChar = word.last else {
-            return 1.0
+    /// Splits a word into left part, focus letter, and right part for RSVP display
+    /// - Parameter word: The word to split
+    /// - Returns: RSVPWord containing the three parts
+    func splitWord(_ word: String) -> RSVPWord {
+        guard !word.isEmpty else {
+            return RSVPWord(leftPart: "", focusLetter: "", rightPart: "")
         }
+        let focusIndex = getFocusIndex(for: word)
+        let characters = Array(word)
 
-        switch lastChar {
-        case ".", "!", "?":
-            return 1.5
-        case ",", ":", ";":
-            return 1.2
-        default:
-            return 1.0
-        }
+        let leftPart = String(characters[..<focusIndex])
+        let focusLetter = String(characters[focusIndex])
+        let rightPart = String(characters[(focusIndex + 1)...])
+
+        return RSVPWord(
+            leftPart: leftPart,
+            focusLetter: focusLetter,
+            rightPart: rightPart
+        )
     }
 }
