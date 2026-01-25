@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import AVFoundation
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
@@ -57,11 +58,18 @@ struct SettingsView: View {
                             )
                         }
 
-                        HStack {
-                            Text("Voice")
-                            Spacer()
-                            Text(settings.selectedVoiceId ?? "Default")
-                                .foregroundColor(.secondary)
+                        NavigationLink {
+                            VoicePickerView(selectedVoiceId: Binding(
+                                get: { settings.selectedVoiceId },
+                                set: { settings.selectedVoiceId = $0 }
+                            ))
+                        } label: {
+                            HStack {
+                                Text("Voice")
+                                Spacer()
+                                Text(voiceDisplayName(for: settings.selectedVoiceId))
+                                    .foregroundColor(.secondary)
+                            }
                         }
                     } header: {
                         Text("Text-to-Speech")
@@ -96,6 +104,119 @@ struct SettingsView: View {
         if settingsArray.isEmpty {
             let newSettings = AppSettings()
             modelContext.insert(newSettings)
+        }
+    }
+
+    private func voiceDisplayName(for voiceId: String?) -> String {
+        guard let voiceId = voiceId else { return "Default" }
+        if let voice = AVSpeechSynthesisVoice(identifier: voiceId) {
+            return voice.name
+        }
+        return "Default"
+    }
+}
+
+// MARK: - Voice Picker View
+
+struct VoicePickerView: View {
+    @Binding var selectedVoiceId: String?
+    @State private var speechSynthesizer = AVSpeechSynthesizer()
+    @State private var previewingVoiceId: String?
+
+    private var voicesByLanguage: [(language: String, voices: [AVSpeechSynthesisVoice])] {
+        let allVoices = AVSpeechSynthesisVoice.speechVoices()
+        let grouped = Dictionary(grouping: allVoices) { voice -> String in
+            let locale = Locale(identifier: voice.language)
+            return locale.localizedString(forIdentifier: voice.language) ?? voice.language
+        }
+        return grouped.sorted { $0.key < $1.key }.map { (language: $0.key, voices: $0.value.sorted { $0.name < $1.name }) }
+    }
+
+    var body: some View {
+        List {
+            // Default option
+            Section {
+                Button {
+                    selectedVoiceId = nil
+                } label: {
+                    HStack {
+                        Text("System Default")
+                            .foregroundColor(.primary)
+                        Spacer()
+                        if selectedVoiceId == nil {
+                            Image(systemName: "checkmark")
+                                .foregroundColor(.accentColor)
+                        }
+                    }
+                }
+            }
+
+            // Voices grouped by language
+            ForEach(voicesByLanguage, id: \.language) { group in
+                Section(header: Text(group.language)) {
+                    ForEach(group.voices, id: \.identifier) { voice in
+                        HStack {
+                            Button {
+                                selectedVoiceId = voice.identifier
+                            } label: {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(voice.name)
+                                            .foregroundColor(.primary)
+                                        if voice.quality == .enhanced {
+                                            Text("Enhanced")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+                                    Spacer()
+                                    if selectedVoiceId == voice.identifier {
+                                        Image(systemName: "checkmark")
+                                            .foregroundColor(.accentColor)
+                                    }
+                                }
+                            }
+
+                            Button {
+                                previewVoice(voice)
+                            } label: {
+                                Image(systemName: previewingVoiceId == voice.identifier ? "stop.circle.fill" : "play.circle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.accentColor)
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("Select Voice")
+        .navigationBarTitleDisplayMode(.inline)
+        .onDisappear {
+            speechSynthesizer.stopSpeaking(at: .immediate)
+        }
+    }
+
+    private func previewVoice(_ voice: AVSpeechSynthesisVoice) {
+        if speechSynthesizer.isSpeaking {
+            speechSynthesizer.stopSpeaking(at: .immediate)
+            if previewingVoiceId == voice.identifier {
+                previewingVoiceId = nil
+                return
+            }
+        }
+
+        previewingVoiceId = voice.identifier
+        let utterance = AVSpeechUtterance(string: "Hello, this is a preview of my voice.")
+        utterance.voice = voice
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+        speechSynthesizer.speak(utterance)
+
+        // Reset preview state when done (approximate duration)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            if previewingVoiceId == voice.identifier {
+                previewingVoiceId = nil
+            }
         }
     }
 }
