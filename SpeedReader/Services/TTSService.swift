@@ -20,12 +20,16 @@ enum TTSServiceError: LocalizedError {
 }
 
 /// Service for text-to-speech functionality using AVSpeechSynthesizer
-actor TTSService {
+actor TTSService: NSObject, AVSpeechSynthesizerDelegate {
     private let synthesizer: AVSpeechSynthesizer
     private let audioSession = AVAudioSession.sharedInstance()
+    private var speechProgressHandler: ((NSRange) -> Void)?
+    private var speechCompletionHandler: (() -> Void)?
 
-    init() {
+    override init() {
         self.synthesizer = AVSpeechSynthesizer()
+        super.init()
+        self.synthesizer.delegate = self
         setupAudioSession()
         setupInterruptionHandling()
     }
@@ -90,6 +94,18 @@ actor TTSService {
         }
     }
 
+    /// Sets the handler to be called when speech progress updates
+    /// - Parameter handler: Closure called with the current character range being spoken
+    func setSpeechProgressHandler(_ handler: @escaping (NSRange) -> Void) {
+        speechProgressHandler = handler
+    }
+
+    /// Sets the handler to be called when speech completes
+    /// - Parameter handler: Closure called when speech finishes
+    func setSpeechCompletionHandler(_ handler: @escaping () -> Void) {
+        speechCompletionHandler = handler
+    }
+
     /// Speaks the provided text using the specified speed multiplier
     /// - Parameters:
     ///   - text: The text to speak
@@ -140,5 +156,27 @@ actor TTSService {
     /// Checks if the synthesizer is currently paused
     var isPaused: Bool {
         synthesizer.isPaused
+    }
+
+    // MARK: - AVSpeechSynthesizerDelegate
+
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, willSpeakRangeOfSpeechString characterRange: NSRange, utterance: AVSpeechUtterance) {
+        Task { @MainActor in
+            await self.handleSpeechProgress(characterRange)
+        }
+    }
+
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        Task { @MainActor in
+            await self.handleSpeechCompletion()
+        }
+    }
+
+    private func handleSpeechProgress(_ characterRange: NSRange) {
+        speechProgressHandler?(characterRange)
+    }
+
+    private func handleSpeechCompletion() {
+        speechCompletionHandler?()
     }
 }
