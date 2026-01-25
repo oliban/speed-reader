@@ -5,6 +5,7 @@ import AVFoundation
 enum TTSServiceError: LocalizedError {
     case synthesisFailure
     case invalidText
+    case audioSessionError
 
     var errorDescription: String? {
         switch self {
@@ -12,6 +13,8 @@ enum TTSServiceError: LocalizedError {
             return "Failed to synthesize speech."
         case .invalidText:
             return "Invalid or empty text provided."
+        case .audioSessionError:
+            return "Failed to configure audio session."
         }
     }
 }
@@ -19,9 +22,72 @@ enum TTSServiceError: LocalizedError {
 /// Service for text-to-speech functionality using AVSpeechSynthesizer
 actor TTSService {
     private let synthesizer: AVSpeechSynthesizer
+    private let audioSession = AVAudioSession.sharedInstance()
 
     init() {
         self.synthesizer = AVSpeechSynthesizer()
+        setupAudioSession()
+        setupInterruptionHandling()
+    }
+
+    /// Configures the audio session for background playback
+    private func setupAudioSession() {
+        do {
+            // Configure for playback with mixWithOthers option
+            try audioSession.setCategory(.playback, mode: .spokenAudio, options: [.mixWithOthers])
+            try audioSession.setActive(true)
+        } catch {
+            print("Failed to configure audio session: \(error.localizedDescription)")
+        }
+    }
+
+    /// Sets up audio interruption handling
+    private func setupInterruptionHandling() {
+        NotificationCenter.default.addObserver(
+            forName: AVAudioSession.interruptionNotification,
+            object: audioSession,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self = self,
+                  let userInfo = notification.userInfo,
+                  let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
+                  let type = AVAudioSession.InterruptionType(rawValue: typeValue) else {
+                return
+            }
+
+            Task {
+                await self.handleInterruption(type: type, userInfo: userInfo)
+            }
+        }
+    }
+
+    /// Handles audio interruptions (e.g., phone calls, other audio)
+    private func handleInterruption(type: AVAudioSession.InterruptionType, userInfo: [AnyHashable: Any]) {
+        switch type {
+        case .began:
+            // Interruption began - pause speech
+            if synthesizer.isSpeaking {
+                synthesizer.pauseSpeaking(at: .word)
+            }
+        case .ended:
+            // Interruption ended - optionally resume
+            guard let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt else {
+                return
+            }
+            let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
+            if options.contains(.shouldResume) {
+                do {
+                    try audioSession.setActive(true)
+                    if synthesizer.isPaused {
+                        synthesizer.continueSpeaking()
+                    }
+                } catch {
+                    print("Failed to reactivate audio session: \(error.localizedDescription)")
+                }
+            }
+        @unknown default:
+            break
+        }
     }
 
     /// Speaks the provided text using the specified speed multiplier
