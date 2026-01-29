@@ -91,6 +91,24 @@ struct RSVPReaderView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Edge-to-edge progress bar at top - Hyperfocus Noir brutalist style
+            if !words.isEmpty {
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        // Track background
+                        Rectangle()
+                            .fill(Color.smoke)
+                            .frame(height: 3)
+
+                        // Progress fill
+                        Rectangle()
+                            .fill(Color.electricAmber)
+                            .frame(width: geometry.size.width * CGFloat(currentWordIndex) / CGFloat(max(words.count - 1, 1)), height: 3)
+                    }
+                }
+                .frame(height: 3)
+            }
+
             // Top spacer - weighted to give more space to word display
             Spacer()
                 .frame(minHeight: 60)
@@ -147,7 +165,7 @@ struct RSVPReaderView: View {
                     .accessibilityLabel("Skip back 5 words")
                     .opacity(isPlaying ? 0.0 : 1.0)
 
-                    // Play/Pause button - always visible (slightly faded when playing)
+                    // Play/Pause button - always visible (faded to 0.3 when playing)
                     Button(action: togglePlayPause) {
                         Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                             .font(.title2)
@@ -156,7 +174,7 @@ struct RSVPReaderView: View {
                     .buttonStyle(.borderedProminent)
                     .disabled(state == .idle)
                     .accessibilityLabel(isPlaying ? "Pause" : "Play")
-                    .opacity(isPlaying ? 0.4 : 1.0)
+                    .opacity(isPlaying ? 0.3 : 1.0)
 
                     // Skip forward button (5 words)
                     Button(action: skipForward) {
@@ -174,14 +192,15 @@ struct RSVPReaderView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "speedometer")
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.adaptiveSecondaryText)
 
                     Text("\(Int(currentSpeed))")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.adaptiveSecondaryText)
                         .frame(width: 32, alignment: .trailing)
 
                     Slider(value: $currentSpeed, in: 120...900, step: 10)
+                        .tint(Color.adaptiveAccent)
                         .onChange(of: currentSpeed) { _, newValue in
                             updateSpeed(to: Int(newValue))
                         }
@@ -190,44 +209,41 @@ struct RSVPReaderView: View {
 
                     Text("WPM")
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.adaptiveSecondaryText)
                 }
                 .padding(.horizontal, 24)
                 .opacity(isPlaying ? 0.0 : 1.0)
                 .animation(.easeInOut(duration: 0.3), value: isPlaying)
 
-                // Progress indicator - always show progress bar, hide details when playing
+                // Progress details - hide during playback (progress bar at top is always visible)
                 if !words.isEmpty {
-                    VStack(spacing: 4) {
-                        ProgressView(value: Double(currentWordIndex), total: Double(max(words.count - 1, 1)))
-                            .accessibilityLabel("Reading progress")
-                            .accessibilityValue("Word \(currentWordIndex + 1) of \(words.count)")
+                    HStack(spacing: 8) {
+                        Text("\(currentWordIndex + 1)/\(words.count)")
+                            .font(.caption2)
+                            .foregroundStyle(Color.adaptiveSecondaryText)
 
-                        HStack(spacing: 8) {
-                            Text("\(currentWordIndex + 1)/\(words.count)")
+                        Text("·")
+                            .font(.caption2)
+                            .foregroundStyle(Color.adaptiveSecondaryText)
+
+                        HStack(spacing: 2) {
+                            Image(systemName: stateIcon)
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
-
-                            Text("·")
+                            Text(stateDescription)
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
-
-                            HStack(spacing: 2) {
-                                Image(systemName: stateIcon)
-                                    .font(.caption2)
-                                Text(stateDescription)
-                                    .font(.caption2)
-                            }
-                            .foregroundStyle(.secondary)
                         }
-                        .opacity(isPlaying ? 0.0 : 1.0)
-                        .animation(.easeInOut(duration: 0.3), value: isPlaying)
+                        .foregroundStyle(Color.adaptiveSecondaryText)
                     }
                     .padding(.horizontal, 24)
+                    .opacity(isPlaying ? 0.0 : 1.0)
+                    .animation(.easeInOut(duration: 0.3), value: isPlaying)
+                    .accessibilityLabel("Reading progress")
+                    .accessibilityValue("Word \(currentWordIndex + 1) of \(words.count)")
                 }
             }
             .padding(.bottom, 16)
         }
+        .background(Color.adaptiveBackground)
         .navigationTitle("RSVP Reader")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
@@ -482,12 +498,14 @@ struct RSVPReaderView: View {
 /// Displays a single word with the focus letter highlighted at a fixed center position.
 /// Uses absolute positioning to ensure the focus letter is always at the exact same
 /// screen location regardless of word length.
+/// Hyperfocus Noir design: JetBrains Mono Bold with glow effect on focus letter.
 struct WordDisplayView: View {
     let rsvpWord: RSVPWord
     let focusColor: Color
 
-    // Font configuration
-    private let fontSize: CGFloat = 48
+    // Font configuration - JetBrains Mono Bold 56pt
+    private let fontSize: CGFloat = 56
+    private let focusLetterScale: CGFloat = 1.1
 
     // Monospaced font character width is approximately 0.6 * fontSize
     private var charWidth: CGFloat { fontSize * 0.6 }
@@ -500,25 +518,27 @@ struct WordDisplayView: View {
             let halfChar = charWidth / 2
 
             ZStack {
-                // Focus letter - always at exact center of screen
+                // Focus letter - always at exact center of screen with glow effect
                 Text(rsvpWord.focusLetter)
-                    .font(.system(size: fontSize, weight: .bold, design: .monospaced))
+                    .font(.rsvpWord)
                     .foregroundColor(focusColor)
+                    .scaleEffect(focusLetterScale)
+                    .shadow(color: focusColor.opacity(0.5), radius: 8)
                     .fixedSize()
                     .position(x: centerX, y: centerY)
 
                 // Left part - right-aligned, positioned so right edge meets left edge of focus letter
                 Text(rsvpWord.leftPart)
-                    .font(.system(size: fontSize, weight: .medium, design: .monospaced))
-                    .foregroundColor(.primary)
+                    .font(.rsvpWord)
+                    .foregroundColor(Color.adaptivePrimaryText)
                     .fixedSize()
                     .frame(maxWidth: centerX - halfChar, alignment: .trailing)
                     .position(x: (centerX - halfChar) / 2, y: centerY)
 
                 // Right part - left-aligned, positioned so left edge meets right edge of focus letter
                 Text(rsvpWord.rightPart)
-                    .font(.system(size: fontSize, weight: .medium, design: .monospaced))
-                    .foregroundColor(.primary)
+                    .font(.rsvpWord)
+                    .foregroundColor(Color.adaptivePrimaryText)
                     .fixedSize()
                     .frame(maxWidth: centerX - halfChar, alignment: .leading)
                     .position(x: centerX + halfChar + (centerX - halfChar) / 2, y: centerY)
@@ -528,6 +548,7 @@ struct WordDisplayView: View {
 }
 
 /// Collapsible context view showing the current paragraph with the current word highlighted
+/// Hyperfocus Noir design: Uses adaptive theme colors.
 struct ContextView: View {
     @Binding var isExpanded: Bool
     let currentParagraph: String?
@@ -550,25 +571,26 @@ struct ContextView: View {
                 } else {
                     Text("No context available")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color.adaptiveSecondaryText)
                         .padding(.top, 8)
                 }
             },
             label: {
                 HStack {
                     Image(systemName: "text.alignleft")
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color.adaptiveSecondaryText)
                     Text("Context")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color.adaptiveSecondaryText)
                 }
             }
         )
-        .tint(.secondary)
+        .tint(Color.adaptiveSecondaryText)
     }
 }
 
 /// View that displays a paragraph with the current word highlighted
+/// Hyperfocus Noir design: Uses adaptive theme colors for background and text.
 struct HighlightedParagraphView: View {
     let paragraph: String
     let currentWord: String
@@ -581,10 +603,11 @@ struct HighlightedParagraphView: View {
         // Build attributed text with highlighted word
         Text(buildAttributedString(words: words))
             .font(.system(size: 14))
+            .foregroundColor(Color.adaptivePrimaryText)
             .lineSpacing(4)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
-            .background(Color(.systemGray6))
+            .background(Color.adaptiveCard)
             .cornerRadius(8)
     }
 
@@ -597,7 +620,10 @@ struct HighlightedParagraphView: View {
             // Highlight the current word
             if let targetIndex = wordIndexInParagraph, index == targetIndex {
                 attributedWord.backgroundColor = highlightColor.opacity(0.3)
-                attributedWord.foregroundColor = .primary
+                attributedWord.foregroundColor = Color(UIColor { $0.userInterfaceStyle == .dark
+                    ? UIColor(red: 232/255, green: 232/255, blue: 236/255, alpha: 1)
+                    : UIColor(red: 26/255, green: 26/255, blue: 26/255, alpha: 1)
+                })
             }
 
             result.append(attributedWord)

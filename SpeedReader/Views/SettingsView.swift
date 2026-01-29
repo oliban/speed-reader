@@ -21,10 +21,11 @@ struct SettingsView: View {
                             HStack {
                                 Label("Speed", systemImage: "speedometer")
                                     .font(.body)
+                                    .foregroundStyle(Color.adaptivePrimaryText)
                                 Spacer()
                                 Text("\(settings.rsvpSpeed) WPM")
-                                    .font(.body)
-                                    .foregroundStyle(.secondary)
+                                    .font(.body.monospacedDigit())
+                                    .foregroundStyle(Color.signalRed)
                             }
                             Slider(
                                 value: Binding(
@@ -34,15 +35,20 @@ struct SettingsView: View {
                                 in: 120...900,
                                 step: 10
                             )
+                            .tint(Color.signalRed)
                             .accessibilityLabel("Reading speed")
                             .accessibilityValue("\(settings.rsvpSpeed) words per minute")
                         }
                     } header: {
-                        Label("RSVP", systemImage: "text.word.spacing")
+                        Text("RSVP")
+                            .srOverlineStyle()
+                            .foregroundStyle(Color.ash)
                     } footer: {
                         Text("Configure Rapid Serial Visual Presentation reading speed")
                             .font(.caption)
+                            .foregroundStyle(Color.adaptiveSecondaryText)
                     }
+                    .listRowBackground(Color.adaptiveCard)
 
                     // TTS Settings Section
                     Section {
@@ -60,7 +66,9 @@ struct SettingsView: View {
                         } label: {
                             Label("Default Speed", systemImage: "gauge.with.dots.needle.33percent")
                                 .font(.body)
+                                .foregroundStyle(Color.adaptivePrimaryText)
                         }
+                        .tint(Color.iceBlue)
 
                         NavigationLink {
                             VoicePickerView(selectedVoiceId: Binding(
@@ -71,18 +79,23 @@ struct SettingsView: View {
                             HStack {
                                 Label("Voice", systemImage: "person.wave.2")
                                     .font(.body)
+                                    .foregroundStyle(Color.adaptivePrimaryText)
                                 Spacer()
                                 Text(voiceDisplayName(for: settings.selectedVoiceId))
                                     .font(.body)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Color.iceBlue)
                             }
                         }
                     } header: {
-                        Label("Text-to-Speech", systemImage: "speaker.wave.3")
+                        Text("Text-to-Speech")
+                            .srOverlineStyle()
+                            .foregroundStyle(Color.ash)
                     } footer: {
                         Text("Default speed applied to new TTS sessions")
                             .font(.caption)
+                            .foregroundStyle(Color.adaptiveSecondaryText)
                     }
+                    .listRowBackground(Color.adaptiveCard)
 
                     // Appearance Settings Section
                     Section {
@@ -96,11 +109,13 @@ struct SettingsView: View {
                         } label: {
                             Label("Theme", systemImage: "paintbrush")
                                 .font(.body)
+                                .foregroundStyle(Color.adaptivePrimaryText)
                         }
 
                         ColorPicker(selection: $focusColor) {
                             Label("Focus Color", systemImage: "eyedropper")
                                 .font(.body)
+                                .foregroundStyle(Color.adaptivePrimaryText)
                         }
                         .onChange(of: focusColor) { _, newColor in
                             settings.focusColor = newColor.toHex() ?? "#FF3B30"
@@ -111,7 +126,7 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Preview")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.adaptiveSecondaryText)
 
                             HStack(spacing: 0) {
                                 Spacer()
@@ -119,19 +134,29 @@ struct SettingsView: View {
                                 Spacer()
                             }
                             .padding(.vertical, 12)
-                            .background(Color(.systemBackground))
+                            .background(Color.adaptiveBackground)
                             .cornerRadius(8)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.adaptiveBorder, lineWidth: 1)
+                            )
                         }
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel("Focus letter preview showing the word Reading")
                     } header: {
-                        Label("Appearance", systemImage: "paintpalette")
+                        Text("Appearance")
+                            .srOverlineStyle()
+                            .foregroundStyle(Color.ash)
                     } footer: {
                         Text("Customize the reading interface appearance")
                             .font(.caption)
+                            .foregroundStyle(Color.adaptiveSecondaryText)
                     }
+                    .listRowBackground(Color.adaptiveCard)
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Color.adaptiveBackground)
             .navigationTitle("Settings")
             .onAppear {
                 ensureSettingsExist()
@@ -183,19 +208,20 @@ struct VoicePickerView: View {
                 } label: {
                     HStack {
                         Text("System Default")
-                            .foregroundColor(.primary)
+                            .foregroundColor(Color.adaptivePrimaryText)
                         Spacer()
                         if selectedVoiceId == nil {
                             Image(systemName: "checkmark")
-                                .foregroundColor(.accentColor)
+                                .foregroundColor(Color.adaptiveAccent)
                         }
                     }
                 }
             }
+            .listRowBackground(Color.adaptiveCard)
 
             // Voices grouped by language
             ForEach(voicesByLanguage, id: \.language) { group in
-                Section(header: Text(group.language)) {
+                Section {
                     ForEach(group.voices, id: \.identifier) { voice in
                         HStack {
                             Button {
@@ -204,17 +230,17 @@ struct VoicePickerView: View {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(voice.name)
-                                            .foregroundColor(.primary)
+                                            .foregroundColor(Color.adaptivePrimaryText)
                                         if voice.quality == .enhanced {
                                             Text("Enhanced")
                                                 .font(.caption)
-                                                .foregroundColor(.secondary)
+                                                .foregroundColor(Color.iceBlue)
                                         }
                                     }
                                     Spacer()
                                     if selectedVoiceId == voice.identifier {
                                         Image(systemName: "checkmark")
-                                            .foregroundColor(.accentColor)
+                                            .foregroundColor(Color.adaptiveAccent)
                                     }
                                 }
                             }
@@ -224,14 +250,21 @@ struct VoicePickerView: View {
                             } label: {
                                 Image(systemName: previewingVoiceId == voice.identifier ? "stop.circle.fill" : "play.circle.fill")
                                     .font(.title2)
-                                    .foregroundColor(.accentColor)
+                                    .foregroundColor(Color.adaptiveAccent)
                             }
                             .buttonStyle(.borderless)
                         }
                     }
+                } header: {
+                    Text(group.language)
+                        .srOverlineStyle()
+                        .foregroundStyle(Color.ash)
                 }
+                .listRowBackground(Color.adaptiveCard)
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Color.adaptiveBackground)
         .navigationTitle("Select Voice")
         .navigationBarTitleDisplayMode(.inline)
         .onDisappear {
@@ -328,8 +361,8 @@ struct FocusLetterPreview: View {
         HStack(spacing: 0) {
             ForEach(Array(word.enumerated()), id: \.offset) { index, character in
                 Text(String(character))
-                    .font(.system(size: 32, weight: .medium, design: .monospaced))
-                    .foregroundColor(index == focusIndex ? focusColor : .primary)
+                    .font(.custom("JetBrainsMono-Bold", size: 32))
+                    .foregroundColor(index == focusIndex ? focusColor : Color.adaptivePrimaryText)
             }
         }
     }

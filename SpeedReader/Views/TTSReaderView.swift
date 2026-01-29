@@ -15,6 +15,7 @@ struct TTSReaderView: View {
     @State private var fullText: String = ""
     @State private var sentenceRanges: [NSRange] = []
     @State private var speechStartSentenceIndex: Int = 0  // Tracks which sentence we started speaking from
+    @State private var tappedSentenceIndex: Int? = nil  // For tap feedback animation
 
     // For progress persistence
     @State private var savedProgress: ReadingProgress?
@@ -54,6 +55,28 @@ struct TTSReaderView: View {
         }
     }
 
+    /// Determine background color for a sentence based on current state
+    private func sentenceBackgroundColor(for index: Int) -> Color {
+        // Brief highlight for tapped sentence (feedback animation)
+        if index == tappedSentenceIndex {
+            return Color.iceBlue.opacity(0.4)
+        }
+        // Current playing sentence highlight
+        if index == currentSentenceIndex && isPlaying && !isPaused {
+            return Color.iceBlue.opacity(0.2)
+        }
+        // Current position when paused/stopped (dimmer highlight)
+        if index == currentSentenceIndex && !isPlaying {
+            return Color.iceBlue.opacity(0.1)
+        }
+        return Color.clear
+    }
+
+    /// Determine if current sentence should show left border highlight
+    private func shouldShowLeftBorder(for index: Int) -> Bool {
+        return index == currentSentenceIndex && (isPlaying || isPaused || index == tappedSentenceIndex)
+    }
+
     // Parse content into sentences for basic highlighting
     private var sentences: [String] {
         // Simple sentence splitting - can be enhanced in TTS-004
@@ -90,26 +113,36 @@ struct TTSReaderView: View {
                         VStack(alignment: .leading, spacing: 16) {
                             // Title
                             Text(article.title)
-                                .font(.title)
-                                .fontWeight(.bold)
+                                .srHeadlineStyle()
+                                .foregroundStyle(Color.adaptivePrimaryText)
                                 .padding(.bottom, 8)
                                 .accessibilityAddTraits(.isHeader)
 
                             // Article content with sentence highlighting
                             VStack(alignment: .leading, spacing: 8) {
                                 ForEach(Array(sentences.enumerated()), id: \.offset) { index, sentence in
-                                    Text(sentence)
-                                        .font(.body)
-                                        .padding(8)
-                                        .background(
-                                            index == currentSentenceIndex && isPlaying && !isPaused
-                                                ? Color.accentColor.opacity(0.2)
-                                                : Color.clear
-                                        )
-                                        .cornerRadius(8)
-                                        .id(index)
-                                        .accessibilityLabel(sentence)
-                                        .accessibilityAddTraits(index == currentSentenceIndex && isPlaying && !isPaused ? .isSelected : [])
+                                    HStack(spacing: 0) {
+                                        // Left border highlight for current sentence
+                                        Rectangle()
+                                            .fill(shouldShowLeftBorder(for: index) ? Color.iceBlue : Color.clear)
+                                            .frame(width: 3)
+
+                                        Text(sentence)
+                                            .srBodyStyle()
+                                            .foregroundStyle(Color.adaptivePrimaryText)
+                                            .padding(8)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    .background(
+                                        sentenceBackgroundColor(for: index)
+                                    )
+                                    .cornerRadius(8)
+                                    .id(index)
+                                    .accessibilityLabel(sentence)
+                                    .accessibilityAddTraits(index == currentSentenceIndex && isPlaying && !isPaused ? .isSelected : [])
+                                    .onTapGesture {
+                                        jumpToSentence(index)
+                                    }
                                 }
                             }
                         }
@@ -125,17 +158,32 @@ struct TTSReaderView: View {
                     }
                 }
 
-                Divider()
+                Rectangle()
+                    .fill(Color.adaptiveBorder)
+                    .frame(height: 1)
 
-                // Progress indicator
+                // Progress indicator - custom thin progress bar
                 VStack(spacing: 4) {
-                    ProgressView(value: Double(currentSentenceIndex + 1), total: Double(max(sentences.count, 1)))
-                        .progressViewStyle(.linear)
-                        .tint(.accentColor)
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            // Track
+                            Rectangle()
+                                .fill(Color.smoke)
+                                .frame(height: 3)
+                                .cornerRadius(1.5)
+
+                            // Fill
+                            Rectangle()
+                                .fill(Color.iceBlue)
+                                .frame(width: geometry.size.width * CGFloat(currentSentenceIndex + 1) / CGFloat(max(sentences.count, 1)), height: 3)
+                                .cornerRadius(1.5)
+                        }
+                    }
+                    .frame(height: 3)
 
                     Text("\(Int(Double(currentSentenceIndex + 1) / Double(max(sentences.count, 1)) * 100))%")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.adaptiveSecondaryText)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
@@ -148,7 +196,7 @@ struct TTSReaderView: View {
                     VStack(spacing: 8) {
                         Label("Speed", systemImage: "gauge.with.dots.needle.50percent")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.adaptiveSecondaryText)
 
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
@@ -159,12 +207,20 @@ struct TTSReaderView: View {
                                         Text("\(speed, specifier: "%.1f")x")
                                             .font(.body)
                                             .fontWeight(selectedSpeed == speed ? .semibold : .regular)
+                                            .foregroundStyle(selectedSpeed == speed ? Color.iceBlue : Color.ash)
                                             .frame(minWidth: 44)
                                             .padding(.vertical, 8)
                                             .padding(.horizontal, 8)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .stroke(selectedSpeed == speed ? Color.iceBlue : Color.smoke, lineWidth: 1)
+                                                    .background(
+                                                        RoundedRectangle(cornerRadius: 8)
+                                                            .fill(selectedSpeed == speed ? Color.iceBlue.opacity(0.15) : Color.clear)
+                                                    )
+                                            )
                                     }
-                                    .buttonStyle(.bordered)
-                                    .tint(selectedSpeed == speed ? .accentColor : .secondary)
+                                    .buttonStyle(.plain)
                                     .accessibilityLabel("\(speed, specifier: "%.1f") times speed")
                                     .accessibilityAddTraits(selectedSpeed == speed ? .isSelected : [])
                                 }
@@ -220,7 +276,7 @@ struct TTSReaderView: View {
                     HStack(spacing: 12) {
                         Label("Sleep Timer", systemImage: "moon.zzz")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.adaptiveSecondaryText)
 
                         Menu {
                             ForEach(sleepPresets, id: \.self) { preset in
@@ -238,19 +294,19 @@ struct TTSReaderView: View {
                             HStack(spacing: 4) {
                                 if sleepTimeRemaining > 0 {
                                     Image(systemName: "timer")
-                                        .foregroundStyle(.orange)
+                                        .foregroundStyle(Color.electricAmber)
                                 }
                                 Text(sleepTimerLabel)
                                     .font(.body)
                                     .fontWeight(sleepTimeRemaining > 0 ? .semibold : .regular)
-                                    .foregroundStyle(sleepTimeRemaining > 0 ? .orange : .primary)
+                                    .foregroundStyle(sleepTimeRemaining > 0 ? Color.electricAmber : Color.adaptivePrimaryText)
                                 Image(systemName: "chevron.up.chevron.down")
                                     .font(.caption2)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Color.adaptiveSecondaryText)
                             }
                             .padding(.vertical, 8)
                             .padding(.horizontal, 12)
-                            .background(Color(.secondarySystemBackground))
+                            .background(Color.adaptiveSecondary)
                             .cornerRadius(8)
                         }
                         .accessibilityLabel("Sleep Timer: \(sleepTimerLabel)")
@@ -265,9 +321,18 @@ struct TTSReaderView: View {
                         } label: {
                             Image(systemName: "stop.fill")
                                 .font(.title2)
+                                .foregroundStyle(!isPlaying && !isPaused ? Color.ash.opacity(0.5) : Color.adaptivePrimaryText)
                                 .frame(width: 44, height: 44)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(Color.smoke, lineWidth: 1)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .fill(Color.adaptiveSecondary)
+                                        )
+                                )
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.plain)
                         .disabled(!isPlaying && !isPaused)
                         .accessibilityLabel("Stop")
 
@@ -283,16 +348,22 @@ struct TTSReaderView: View {
                         } label: {
                             Image(systemName: isPaused || !isPlaying ? "play.fill" : "pause.fill")
                                 .font(.title)
+                                .foregroundStyle(Color.voidBlack)
                                 .frame(width: 60, height: 60)
+                                .background(
+                                    Circle()
+                                        .fill(Color.iceBlue)
+                                )
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.plain)
                         .accessibilityLabel(isPaused || !isPlaying ? "Play" : "Pause")
                     }
                     .padding(.vertical, 8)
                 }
                 .padding(16)
-                .background(Color(.systemBackground))
+                .background(Color.adaptiveCard)
             }
+            .background(Color.adaptiveBackground)
             .navigationTitle("Reader")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
@@ -588,6 +659,61 @@ struct TTSReaderView: View {
 
         Task {
             await ttsService.stop()
+        }
+    }
+
+    /// Jump to a specific sentence when user taps on it
+    private func jumpToSentence(_ index: Int) {
+        guard index >= 0 && index < sentences.count else { return }
+
+        print("[DEBUG jumpToSentence] Jumping to sentence \(index), isPlaying=\(isPlaying), isPaused=\(isPaused)")
+
+        // Visual feedback - briefly highlight the tapped sentence
+        tappedSentenceIndex = index
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            tappedSentenceIndex = nil
+        }
+
+        let wasPlaying = isPlaying && !isPaused
+
+        if wasPlaying {
+            // Stop current speech and restart from the tapped sentence
+            Task {
+                await ttsService.stopForRestart()
+
+                // Update state for the new position
+                currentSentenceIndex = index
+                speechStartSentenceIndex = index
+                buildSentenceRanges(startingFrom: index)
+
+                // Re-setup handlers to capture the updated state
+                await setupTTSHandlersAsync()
+
+                // Start speaking from the tapped sentence
+                let textFromTapped = sentences[index...].joined(separator: " ")
+                do {
+                    try await ttsService.speak(text: textFromTapped, speedMultiplier: selectedSpeed, voiceId: selectedVoiceId)
+                    try await Task.sleep(nanoseconds: 100_000_000) // 100ms
+                    await ttsService.clearRestartFlag()
+
+                    // Ensure isPlaying state is correct after restart
+                    if !isPlaying {
+                        print("[DEBUG jumpToSentence] WARNING: isPlaying was false, restoring to true")
+                        isPlaying = true
+                        isPaused = false
+                    }
+                } catch {
+                    await ttsService.clearRestartFlag()
+                    isPlaying = false
+                    isPaused = false
+                    print("[DEBUG jumpToSentence] Error during speak: \(error)")
+                }
+            }
+        } else {
+            // Not playing - just update the position
+            // When user presses play, it will start from this position
+            currentSentenceIndex = index
+            print("[DEBUG jumpToSentence] Updated position to \(index), will start from here on play")
         }
     }
 

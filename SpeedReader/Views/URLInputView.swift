@@ -1,3 +1,10 @@
+//
+//  URLInputView.swift
+//  SpeedReader
+//
+//  "The Portal" - Hyperfocus Noir design
+//
+
 import SwiftUI
 import SwiftData
 
@@ -16,99 +23,114 @@ struct URLInputView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
-                Spacer()
+            ZStack {
+                // Background
+                Color.adaptiveBackground
+                    .ignoresSafeArea()
 
-                // Icon and description
-                VStack(spacing: 12) {
-                    Image(systemName: "doc.text.magnifyingglass")
-                        .font(.system(size: 60))
-                        .foregroundStyle(Color.accentColor)
-                        .accessibilityHidden(true)
+                VStack(spacing: 0) {
+                    // Push content to upper third with dramatic negative space
+                    Spacer()
+                        .frame(height: 80)
 
-                    Text("Enter URL to read")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
+                    // Editorial header section
+                    VStack(spacing: 16) {
+                        // Overline
+                        Text("SPEEDREADER")
+                            .srOverlineStyle()
+                            .foregroundColor(.adaptiveSecondaryText)
 
-                    Text("Paste or type a web article URL to extract and read it")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 16)
-                }
+                        // Dramatic headline
+                        Text("Paste a URL to begin")
+                            .srHeadlineStyle()
+                            .foregroundColor(.adaptivePrimaryText)
 
-                // URL Input field with paste button
-                VStack(spacing: 16) {
-                    HStack(spacing: 8) {
-                        TextField("https://example.com/article", text: $urlText)
-                            .font(.body)
-                            .textFieldStyle(.roundedBorder)
+                        // Red underline accent
+                        Rectangle()
+                            .fill(Color.signalRed)
+                            .frame(width: 60, height: 2)
+                    }
+                    .padding(.bottom, 48)
+
+                    // URL Input section
+                    VStack(spacing: 20) {
+                        // URL text field with paste button
+                        HStack(spacing: 12) {
+                            SRTextField(
+                                placeholder: "https://example.com/article",
+                                text: $urlText
+                            )
                             .keyboardType(.URL)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .disabled(isLoading)
                             .accessibilityLabel("Article URL")
 
-                        Button {
-                            pasteFromClipboard()
-                        } label: {
-                            Image(systemName: "doc.on.clipboard")
-                                .font(.title3)
-                        }
-                        .buttonStyle(.bordered)
-                        .disabled(isLoading)
-                        .accessibilityLabel("Paste from clipboard")
-                    }
-                    .padding(.horizontal, 16)
-
-                    // Fetch button
-                    Button {
-                        Task {
-                            await fetchArticle()
-                        }
-                    } label: {
-                        HStack(spacing: 8) {
-                            if isLoading {
-                                ProgressView()
-                                    .progressViewStyle(.circular)
-                                    .tint(.white)
-                            } else {
-                                Image(systemName: "arrow.down.doc")
+                            // Paste button
+                            Button {
+                                pasteFromClipboard()
+                            } label: {
+                                Image(systemName: "doc.on.clipboard")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(.adaptiveSecondaryText)
+                                    .frame(width: 48, height: 48)
+                                    .background(Color.adaptiveSecondary)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(Color.adaptiveBorder, lineWidth: 1)
+                                    )
+                                    .cornerRadius(8)
                             }
-                            Text(isLoading ? "Extracting..." : "Extract Article")
-                                .font(.body)
+                            .disabled(isLoading)
+                            .accessibilityLabel("Paste from clipboard")
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(urlText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
-                    .padding(.horizontal, 16)
-                    .accessibilityLabel(isLoading ? "Extracting article" : "Extract article")
-                }
+                        .padding(.horizontal, 24)
 
-                // Error message display
-                if let errorMessage = errorMessage {
-                    HStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
-                            .accessibilityHidden(true)
-                        Text(errorMessage)
-                            .font(.body)
-                            .foregroundStyle(.red)
+                        // Fetch button
+                        SRPrimaryButton(
+                            title: isLoading ? "Extracting..." : "Extract Article",
+                            action: {
+                                Task {
+                                    await fetchArticle()
+                                }
+                            },
+                            isLoading: isLoading,
+                            isDisabled: urlText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        )
+                        .padding(.horizontal, 24)
+                        .accessibilityLabel(isLoading ? "Extracting article" : "Extract article")
                     }
-                    .padding(16)
-                    .background(Color.red.opacity(0.1))
-                    .cornerRadius(8)
-                    .padding(.horizontal, 16)
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel("Error: \(errorMessage)")
-                }
 
-                Spacer()
-                Spacer()
+                    // Error message display
+                    if let errorMessage = errorMessage {
+                        HStack(spacing: 12) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.signalRed)
+                                .accessibilityHidden(true)
+                            Text(errorMessage)
+                                .font(.srBody)
+                                .foregroundColor(.signalRed)
+                        }
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.adaptiveCard)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.signalRed.opacity(0.5), lineWidth: 1)
+                        )
+                        .cornerRadius(8)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 24)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("Error: \(errorMessage)")
+                    }
+
+                    Spacer()
+                }
             }
             .navigationTitle("Home")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.adaptiveBackground, for: .navigationBar)
             .sheet(isPresented: $showModeSelection) {
                 ModeSelectionSheet(
                     article: extractedArticle,
@@ -122,6 +144,7 @@ struct URLInputView: View {
                     }
                 )
                 .presentationDetents([.medium])
+                .presentationBackground(Color.adaptiveBackground)
             }
             .navigationDestination(isPresented: $navigateToRSVP) {
                 if let article = extractedArticle {
@@ -198,77 +221,116 @@ struct ModeSelectionSheet: View {
     let onTTSSelected: () -> Void
 
     var body: some View {
-        VStack(spacing: 24) {
-            // Header
-            VStack(spacing: 8) {
-                Image(systemName: "book.pages")
-                    .font(.system(size: 48))
-                    .foregroundStyle(.blue)
+        ZStack {
+            Color.adaptiveBackground
+                .ignoresSafeArea()
 
-                Text("Choose Reading Mode")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+            VStack(spacing: 32) {
+                // Header
+                VStack(spacing: 16) {
+                    // Overline
+                    Text("Reading Mode")
+                        .srOverlineStyle()
+                        .foregroundColor(.adaptiveSecondaryText)
 
-                if let article = article {
-                    Text(article.title)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                        .padding(.horizontal)
-                }
-            }
-            .padding(.top, 24)
+                    // Headline
+                    Text("Choose Your Path")
+                        .srHeadlineStyle()
+                        .foregroundColor(.adaptivePrimaryText)
 
-            // Mode selection buttons
-            VStack(spacing: 16) {
-                Button(action: onRSVPSelected) {
-                    HStack {
-                        Image(systemName: "text.word.spacing")
-                            .font(.title2)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("RSVP Reader")
-                                .font(.headline)
-                            Text("Rapid Serial Visual Presentation")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.secondary)
+                    // Red underline accent
+                    Rectangle()
+                        .fill(Color.signalRed)
+                        .frame(width: 40, height: 2)
+
+                    if let article = article {
+                        Text(article.title)
+                            .font(.srBody)
+                            .foregroundColor(.adaptiveSecondaryText)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                            .padding(.horizontal, 24)
+                            .padding(.top, 8)
                     }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(12)
                 }
-                .buttonStyle(.plain)
+                .padding(.top, 32)
 
-                Button(action: onTTSSelected) {
-                    HStack {
-                        Image(systemName: "speaker.wave.2")
-                            .font(.title2)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("TTS Reader")
-                                .font(.headline)
-                            Text("Text-to-Speech with highlighting")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                // Mode selection buttons
+                VStack(spacing: 16) {
+                    // RSVP Button
+                    Button(action: onRSVPSelected) {
+                        HStack(spacing: 16) {
+                            Image(systemName: "text.word.spacing")
+                                .font(.system(size: 24, weight: .medium))
+                                .foregroundColor(.adaptiveAccent)
+                                .frame(width: 32)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("RSVP READER")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .tracking(0.1 * 13)
+                                    .foregroundColor(.adaptivePrimaryText)
+
+                                Text("Rapid Serial Visual Presentation")
+                                    .font(.system(size: 13, weight: .regular))
+                                    .foregroundColor(.adaptiveSecondaryText)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.adaptiveSecondaryText)
                         }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.secondary)
+                        .padding(20)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.adaptiveCard)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 0)
+                                .stroke(Color.adaptiveBorder, lineWidth: 1)
+                        )
                     }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(12)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal)
+                    .buttonStyle(.plain)
 
-            Spacer()
+                    // TTS Button
+                    Button(action: onTTSSelected) {
+                        HStack(spacing: 16) {
+                            Image(systemName: "speaker.wave.2")
+                                .font(.system(size: 24, weight: .medium))
+                                .foregroundColor(.iceBlue)
+                                .frame(width: 32)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("TTS READER")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .tracking(0.1 * 13)
+                                    .foregroundColor(.adaptivePrimaryText)
+
+                                Text("Text-to-Speech with highlighting")
+                                    .font(.system(size: 13, weight: .regular))
+                                    .foregroundColor(.adaptiveSecondaryText)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.adaptiveSecondaryText)
+                        }
+                        .padding(20)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.adaptiveCard)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 0)
+                                .stroke(Color.adaptiveBorder, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 24)
+
+                Spacer()
+            }
         }
     }
 }
@@ -288,4 +350,16 @@ struct ModeSelectionSheet: View {
         onRSVPSelected: {},
         onTTSSelected: {}
     )
+}
+
+#Preview("Dark Mode") {
+    URLInputView()
+        .modelContainer(for: Article.self, inMemory: true)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Light Mode") {
+    URLInputView()
+        .modelContainer(for: Article.self, inMemory: true)
+        .preferredColorScheme(.light)
 }

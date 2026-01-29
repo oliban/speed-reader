@@ -1,22 +1,32 @@
 import SwiftUI
 
 struct MainTabView: View {
+    @State private var selectedTab: TabItem = .home
+
     var body: some View {
-        TabView {
-            URLInputView()
-                .tabItem {
-                    Label("Home", systemImage: "house.fill")
-                }
+        ZStack {
+            // Background
+            Color.adaptiveBackground
+                .ignoresSafeArea()
 
-            LibraryView()
-                .tabItem {
-                    Label("Library", systemImage: "books.vertical.fill")
+            // Content based on selected tab
+            Group {
+                switch selectedTab {
+                case .home:
+                    URLInputView()
+                case .library:
+                    LibraryView()
+                case .settings:
+                    SettingsView()
                 }
+            }
+            .padding(.bottom, 80) // Space for floating tab bar
 
-            SettingsView()
-                .tabItem {
-                    Label("Settings", systemImage: "gearshape.fill")
-                }
+            // Floating tab bar
+            VStack {
+                Spacer()
+                FloatingTabBar(selectedTab: $selectedTab)
+            }
         }
     }
 }

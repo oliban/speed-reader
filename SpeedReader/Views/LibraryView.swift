@@ -13,6 +13,7 @@ struct LibraryView: View {
     @State private var showModeSelection = false
     @State private var navigateToRSVP = false
     @State private var navigateToTTS = false
+    @State private var listVisible = false
 
     private var filteredArticles: [Article] {
         if searchText.isEmpty {
@@ -25,27 +26,46 @@ struct LibraryView: View {
         }
     }
 
+    /// Calculate progress value (0.0 to 1.0) for an article
+    private func progressValue(for article: Article) -> Double {
+        guard let progress = allProgress.first(where: { $0.articleId == article.id }),
+              progress.totalWords > 0 else {
+            return 0.0
+        }
+        return Double(progress.currentWordIndex) / Double(progress.totalWords)
+    }
+
     var body: some View {
         NavigationStack {
             Group {
                 if articles.isEmpty {
                     ContentUnavailableView {
                         Label("No Saved Articles", systemImage: "books.vertical")
+                            .foregroundColor(.adaptivePrimaryText)
                     } description: {
                         Text("Articles you save will appear here")
+                            .foregroundColor(.adaptiveSecondaryText)
                     }
+                    .background(Color.adaptiveBackground)
                 } else if filteredArticles.isEmpty {
                     ContentUnavailableView.search(text: searchText)
+                        .background(Color.adaptiveBackground)
                 } else {
-                    List {
-                        ForEach(filteredArticles) { article in
-                            ArticleRowView(article: article)
+                    ScrollView {
+                        LazyVStack(spacing: 16) {
+                            ForEach(Array(filteredArticles.enumerated()), id: \.element.id) { index, article in
+                                ArticleCard(
+                                    article: article,
+                                    progress: progressValue(for: article),
+                                    index: index
+                                )
+                                .staggeredAppear(isVisible: listVisible, index: index)
                                 .contentShape(Rectangle())
                                 .onTapGesture {
                                     selectedArticle = article
                                     showModeSelection = true
                                 }
-                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                .contextMenu {
                                     Button(role: .destructive) {
                                         articleToDelete = article
                                         showDeleteConfirmation = true
@@ -53,10 +73,20 @@ struct LibraryView: View {
                                         Label("Delete", systemImage: "trash")
                                     }
                                 }
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 16)
+                    }
+                    .background(Color.adaptiveBackground)
+                    .onAppear {
+                        withAnimation {
+                            listVisible = true
                         }
                     }
                 }
             }
+            .background(Color.adaptiveBackground)
             .navigationTitle("Library")
             .searchable(text: $searchText, prompt: "Search articles")
             .alert("Delete Article?", isPresented: $showDeleteConfirmation) {
@@ -114,86 +144,30 @@ struct LibraryView: View {
     }
 }
 
-struct ArticleRowView: View {
-    let article: Article
-    @Query private var allProgress: [ReadingProgress]
+// MARK: - Preview
 
-    private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        return formatter
-    }()
-
-    init(article: Article) {
-        self.article = article
-        let articleId = article.id
-        _allProgress = Query(filter: #Predicate<ReadingProgress> { progress in
-            progress.articleId == articleId
-        })
-    }
-
-    private var urlDomain: String {
-        if let url = URL(string: article.url),
-           let host = url.host {
-            return host.replacingOccurrences(of: "www.", with: "")
-        }
-        return article.url
-    }
-
-    private var formattedDate: String {
-        Self.dateFormatter.string(from: article.dateAdded)
-    }
-
-    private var progressPercentage: String {
-        guard let progress = allProgress.first,
-              progress.totalWords > 0 else {
-            return "0%"
-        }
-        let percentage = (Double(progress.currentWordIndex) / Double(progress.totalWords)) * 100
-        return "\(Int(percentage))%"
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(article.title)
-                .font(.headline)
-                .lineLimit(2)
-
-            HStack(spacing: 8) {
-                Image(systemName: "link")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-                Text(urlDomain)
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-
-                Spacer()
-
-                Label(progressPercentage, systemImage: "book.pages")
-                    .font(.body)
-                    .foregroundStyle(Color.accentColor)
-                    .labelStyle(.titleAndIcon)
-            }
-
-            HStack(spacing: 4) {
-                Image(systemName: "calendar")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-                Text("Added: \(formattedDate)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(.vertical, 8)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(article.title), \(urlDomain), \(progressPercentage) complete, added \(formattedDate)")
-    }
+#Preview("Library - Empty") {
+    LibraryView()
+        .modelContainer(for: [Article.self, ReadingProgress.self], inMemory: true)
 }
 
-#Preview {
-    LibraryView()
-        .modelContainer(for: Article.self, inMemory: true)
+#Preview("Library - With Articles") {
+    let container = try! ModelContainer(
+        for: Article.self, ReadingProgress.self,
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    )
+
+    // Add sample articles
+    let articles = [
+        Article(url: "https://example.com/1", title: "How to Build Better Habits", content: "Sample content..."),
+        Article(url: "https://medium.com/2", title: "The Future of AI: What We Can Expect in 2025", content: "Sample content..."),
+        Article(url: "https://news.ycombinator.com/3", title: "Understanding SwiftUI Performance", content: "Sample content...")
+    ]
+
+    for article in articles {
+        container.mainContext.insert(article)
+    }
+
+    return LibraryView()
+        .modelContainer(container)
 }
