@@ -26,6 +26,9 @@ struct TTSReaderView: View {
     @State private var sleepTimeRemaining: Int = 0  // Remaining time in seconds
     @State private var sleepTimer: Timer? = nil
 
+    // Flag to prevent redundant handler setup
+    @State private var handlersConfigured: Bool = false
+
     // Speed presets as specified
     private let speedPresets: [Double] = [0.5, 1.0, 1.5, 2.0, 3.0, 4.0]
 
@@ -378,10 +381,12 @@ struct TTSReaderView: View {
                 print("[DEBUG onDisappear] TTSReaderView disappearing, currentSentenceIndex=\(currentSentenceIndex)")
                 saveProgress()
                 stopSleepTimer()
-                // Stop TTS to prevent multiple voices playing if user reopens article
+                // Clean up TTS resources to prevent memory leaks and observer accumulation
                 Task {
-                    await ttsService.stop()
+                    await ttsService.cleanup()
                 }
+                // Reset handlers flag so they can be set up again if view reappears
+                handlersConfigured = false
             }
     }
 
@@ -520,20 +525,30 @@ struct TTSReaderView: View {
     }
 
     private func setupTTSHandlersAsync() async {
+        // Only set up handlers once to prevent accumulation of closures
+        guard !handlersConfigured else {
+            print("[DEBUG setupTTSHandlersAsync] Handlers already configured, skipping")
+            return
+        }
+
         print("[DEBUG setupTTSHandlersAsync] Setting up handlers, currentSentenceIndex=\(currentSentenceIndex), speechStartSentenceIndex=\(speechStartSentenceIndex)")
-        // Set up speech progress handler
-        await ttsService.setSpeechProgressHandler { [self] characterRange in
-            print("[DEBUG progressHandler] Called with range \(characterRange), isPlaying=\(isPlaying)")
+        // Set up speech progress handler - use weak self to avoid retain cycles
+        await ttsService.setSpeechProgressHandler { [weak self] characterRange in
+            guard let self = self else { return }
+            print("[DEBUG progressHandler] Called with range \(characterRange), isPlaying=\(self.isPlaying)")
             self.updateCurrentSentence(for: characterRange)
         }
 
-        // Set up speech completion handler
-        await ttsService.setSpeechCompletionHandler { [self] in
-            print("[DEBUG completionHandler] Speech finished, resetting to index 0, current isPlaying=\(isPlaying)")
+        // Set up speech completion handler - use weak self to avoid retain cycles
+        await ttsService.setSpeechCompletionHandler { [weak self] in
+            guard let self = self else { return }
+            print("[DEBUG completionHandler] Speech finished, resetting to index 0, current isPlaying=\(self.isPlaying)")
             self.isPlaying = false
             self.isPaused = false
             self.currentSentenceIndex = 0
         }
+
+        handlersConfigured = true
     }
 
     private func updateCurrentSentence(for characterRange: NSRange) {
@@ -739,17 +754,21 @@ struct TTSReaderView: View {
     private func startSleepTimer(minutes: Int) {
         sleepTimeRemaining = minutes * 60
 
-        sleepTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [self] timer in
-            if sleepTimeRemaining > 0 {
-                sleepTimeRemaining -= 1
+        sleepTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+            guard let self = self else {
+                timer.invalidate()
+                return
+            }
+            if self.sleepTimeRemaining > 0 {
+                self.sleepTimeRemaining -= 1
 
-                if sleepTimeRemaining == 0 {
+                if self.sleepTimeRemaining == 0 {
                     // Timer expired - pause the reading
                     timer.invalidate()
-                    sleepTimer = nil
-                    pauseReading()
+                    self.sleepTimer = nil
+                    self.pauseReading()
                     // Reset selected duration so user can set it again
-                    selectedSleepDuration = nil
+                    self.selectedSleepDuration = nil
                 }
             }
         }
@@ -772,17 +791,21 @@ struct TTSReaderView: View {
     private func resumeSleepTimer() {
         guard sleepTimeRemaining > 0, selectedSleepDuration != nil else { return }
 
-        sleepTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [self] timer in
-            if sleepTimeRemaining > 0 {
-                sleepTimeRemaining -= 1
+        sleepTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+            guard let self = self else {
+                timer.invalidate()
+                return
+            }
+            if self.sleepTimeRemaining > 0 {
+                self.sleepTimeRemaining -= 1
 
-                if sleepTimeRemaining == 0 {
+                if self.sleepTimeRemaining == 0 {
                     // Timer expired - pause the reading
                     timer.invalidate()
-                    sleepTimer = nil
-                    pauseReading()
+                    self.sleepTimer = nil
+                    self.pauseReading()
                     // Reset selected duration so user can set it again
-                    selectedSleepDuration = nil
+                    self.selectedSleepDuration = nil
                 }
             }
         }

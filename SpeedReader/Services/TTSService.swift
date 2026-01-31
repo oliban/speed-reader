@@ -26,6 +26,7 @@ actor TTSService: NSObject, AVSpeechSynthesizerDelegate {
     private var speechProgressHandler: ((NSRange) -> Void)?
     private var speechCompletionHandler: (() -> Void)?
     private var isRestarting: Bool = false  // Flag to suppress completion during speed change
+    private var interruptionObserver: NSObjectProtocol?  // Store observer for cleanup
 
     override init() {
         self.synthesizer = AVSpeechSynthesizer()
@@ -48,7 +49,8 @@ actor TTSService: NSObject, AVSpeechSynthesizerDelegate {
 
     /// Sets up audio interruption handling
     private func setupInterruptionHandling() {
-        NotificationCenter.default.addObserver(
+        // Store the observer so we can remove it during cleanup
+        interruptionObserver = NotificationCenter.default.addObserver(
             forName: AVAudioSession.interruptionNotification,
             object: audioSession,
             queue: .main
@@ -155,6 +157,23 @@ actor TTSService: NSObject, AVSpeechSynthesizerDelegate {
     /// Stops speech synthesis immediately
     func stop() {
         synthesizer.stopSpeaking(at: .immediate)
+    }
+
+    /// Cleans up all resources: removes observer and clears handlers
+    /// Call this when the view disappears to prevent memory leaks
+    func cleanup() {
+        // Stop any ongoing speech
+        synthesizer.stopSpeaking(at: .immediate)
+
+        // Remove the interruption observer to prevent accumulation
+        if let observer = interruptionObserver {
+            NotificationCenter.default.removeObserver(observer)
+            interruptionObserver = nil
+        }
+
+        // Clear handlers to break any retain cycles
+        speechProgressHandler = nil
+        speechCompletionHandler = nil
     }
 
     /// Stops speech synthesis and prepares for immediate restart (suppresses completion callback)
