@@ -21,6 +21,7 @@ targets:
       path: SpeedReader/Info.plist
       properties:
         CFBundleIconName: AppIcon
+        ITSAppUsesNonExemptEncryption: false
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
           UISceneConfigurations: {}
