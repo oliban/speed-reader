@@ -20,6 +20,7 @@ targets:
     info:
       path: SpeedReader/Info.plist
       properties:
+        CFBundleIconName: AppIcon
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
           UISceneConfigurations: {}
