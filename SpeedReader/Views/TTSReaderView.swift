@@ -532,16 +532,14 @@ struct TTSReaderView: View {
         }
 
         print("[DEBUG setupTTSHandlersAsync] Setting up handlers, currentSentenceIndex=\(currentSentenceIndex), speechStartSentenceIndex=\(speechStartSentenceIndex)")
-        // Set up speech progress handler - use weak self to avoid retain cycles
-        await ttsService.setSpeechProgressHandler { [weak self] characterRange in
-            guard let self = self else { return }
+        // Set up speech progress handler
+        await ttsService.setSpeechProgressHandler { characterRange in
             print("[DEBUG progressHandler] Called with range \(characterRange), isPlaying=\(self.isPlaying)")
             self.updateCurrentSentence(for: characterRange)
         }
 
-        // Set up speech completion handler - use weak self to avoid retain cycles
-        await ttsService.setSpeechCompletionHandler { [weak self] in
-            guard let self = self else { return }
+        // Set up speech completion handler
+        await ttsService.setSpeechCompletionHandler {
             print("[DEBUG completionHandler] Speech finished, resetting to index 0, current isPlaying=\(self.isPlaying)")
             self.isPlaying = false
             self.isPaused = false
@@ -754,11 +752,7 @@ struct TTSReaderView: View {
     private func startSleepTimer(minutes: Int) {
         sleepTimeRemaining = minutes * 60
 
-        sleepTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
-            guard let self = self else {
-                timer.invalidate()
-                return
-            }
+        sleepTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
             if self.sleepTimeRemaining > 0 {
                 self.sleepTimeRemaining -= 1
 
@@ -791,11 +785,7 @@ struct TTSReaderView: View {
     private func resumeSleepTimer() {
         guard sleepTimeRemaining > 0, selectedSleepDuration != nil else { return }
 
-        sleepTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
-            guard let self = self else {
-                timer.invalidate()
-                return
-            }
+        sleepTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
             if self.sleepTimeRemaining > 0 {
                 self.sleepTimeRemaining -= 1
 
