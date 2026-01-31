@@ -32,8 +32,10 @@ actor TTSService: NSObject, AVSpeechSynthesizerDelegate {
         self.synthesizer = AVSpeechSynthesizer()
         super.init()
         self.synthesizer.delegate = self
-        setupAudioSession()
-        setupInterruptionHandling()
+        Task { [self] in
+            await self.setupAudioSession()
+            await self.setupInterruptionHandling()
+        }
     }
 
     /// Configures the audio session for background playback

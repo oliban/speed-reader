@@ -127,7 +127,7 @@ actor ArticleExtractor {
         // Remove unwanted tags
         let unwantedTags = ["script", "style", "nav", "header", "footer", "aside", "noscript", "iframe", "form"]
         for tag in unwantedTags {
-            try? document.select(tag).remove()
+            _ = try? document.select(tag).remove()
         }
 
         // Remove elements with classes/ids containing unwanted patterns
@@ -135,16 +135,16 @@ actor ArticleExtractor {
 
         for pattern in unwantedPatterns {
             // Remove by class containing pattern
-            try? document.select("[class*=\(pattern)]").remove()
+            _ = try? document.select("[class*=\(pattern)]").remove()
             // Remove by id containing pattern
-            try? document.select("[id*=\(pattern)]").remove()
+            _ = try? document.select("[id*=\(pattern)]").remove()
         }
 
         // Remove hidden elements
-        try? document.select("[hidden]").remove()
-        try? document.select("[style*='display:none']").remove()
-        try? document.select("[style*='display: none']").remove()
-        try? document.select("[aria-hidden='true']").remove()
+        _ = try? document.select("[hidden]").remove()
+        _ = try? document.select("[style*='display:none']").remove()
+        _ = try? document.select("[style*='display: none']").remove()
+        _ = try? document.select("[aria-hidden='true']").remove()
     }
 
     /// Extracts the main content from the document using priority-based selection
@@ -233,7 +233,7 @@ actor ArticleExtractor {
 
         // If no good div found, try body
         if bestContent.isEmpty,
-           let body = try? document.body(),
+           let body = document.body(),
            let content = extractTextContent(from: body) {
             return content
         }
