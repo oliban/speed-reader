@@ -246,7 +246,8 @@ struct TTSReaderView: View {
                                 buildSentenceRanges(startingFrom: sentenceToResumeFrom)
                                 print("[DEBUG speedChange] Built \(sentenceRanges.count) sentence ranges starting from index \(speechStartSentenceIndex)")
                                 // Re-setup handlers to capture the updated sentenceRanges and speechStartSentenceIndex
-                                // Must await to ensure handlers are set before speech starts
+                                // Must reset flag to force handler re-setup with fresh closure captures
+                                handlersConfigured = false
                                 await setupTTSHandlersAsync()
                                 print("[DEBUG speedChange] Handlers re-setup, isPlaying=\(isPlaying)")
                                 // Resume from current sentence
@@ -626,9 +627,9 @@ struct TTSReaderView: View {
         saveProgress()
         print("[DEBUG pauseReading] Pausing at sentence index \(currentSentenceIndex)")
         Task {
-            // Use stop instead of pause for immediate effect
+            // Use stopForRestart to suppress completion handler (which would reset currentSentenceIndex)
             // AVSpeechSynthesizer.pauseSpeaking(at: .immediate) has iOS limitations
-            await ttsService.stop()
+            await ttsService.stopForRestart()
         }
     }
 
@@ -650,8 +651,11 @@ struct TTSReaderView: View {
         buildSentenceRanges(startingFrom: currentSentenceIndex)
 
         Task {
-            // Re-setup handlers to capture updated state
+            // Re-setup handlers to capture updated state with fresh closure captures
+            handlersConfigured = false
             await setupTTSHandlersAsync()
+            // Clear restart flag so completion handler works normally when speech finishes
+            await ttsService.clearRestartFlag()
             do {
                 try await ttsService.speak(text: textToSpeak, speedMultiplier: selectedSpeed, voiceId: selectedVoiceId)
             } catch {
@@ -699,7 +703,8 @@ struct TTSReaderView: View {
                 speechStartSentenceIndex = index
                 buildSentenceRanges(startingFrom: index)
 
-                // Re-setup handlers to capture the updated state
+                // Re-setup handlers to capture the updated state with fresh closure captures
+                handlersConfigured = false
                 await setupTTSHandlersAsync()
 
                 // Start speaking from the tapped sentence
