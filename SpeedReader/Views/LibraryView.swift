@@ -3,7 +3,7 @@ import SwiftData
 
 struct LibraryView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Article.dateAdded, order: .reverse) private var articles: [Article]
+    @Query private var articles: [Article]
     @Query private var allProgress: [ReadingProgress]
 
     @State private var articleToDelete: Article?
