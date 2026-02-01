@@ -12,9 +12,6 @@ struct TTSReaderView: View {
     @State private var isPaused: Bool = false
     @State private var selectedSpeed: Double = 1.0
     @State private var currentSentenceIndex: Int = 0
-    @State private var fullText: String = ""
-    @State private var sentenceRanges: [NSRange] = []
-    @State private var speechStartSentenceIndex: Int = 0  // Tracks which sentence we started speaking from
     @State private var tappedSentenceIndex: Int? = nil  // For tap feedback animation
 
     // For progress persistence
@@ -234,44 +231,18 @@ struct TTSReaderView: View {
                     .onChange(of: selectedSpeed) { _, newSpeed in
                         // Restart with new speed if currently playing
                         if isPlaying && !isPaused {
-                            // Capture current state before async work
-                            let sentenceToResumeFrom = currentSentenceIndex
-                            print("[DEBUG speedChange] Speed changed to \(newSpeed), restarting from sentence \(sentenceToResumeFrom)")
+                            print("[DEBUG speedChange] Speed changed to \(newSpeed), restarting sentence \(currentSentenceIndex)")
                             Task {
                                 // Use stopForRestart to prevent completion handler from firing
                                 await ttsService.stopForRestart()
-                                print("[DEBUG speedChange] After stopForRestart, isPlaying=\(isPlaying)")
-                                // Update the starting index for the new speech segment
-                                speechStartSentenceIndex = sentenceToResumeFrom
-                                buildSentenceRanges(startingFrom: sentenceToResumeFrom)
-                                print("[DEBUG speedChange] Built \(sentenceRanges.count) sentence ranges starting from index \(speechStartSentenceIndex)")
-                                // Re-setup handlers to capture the updated sentenceRanges and speechStartSentenceIndex
-                                // Must reset flag to force handler re-setup with fresh closure captures
+                                // Re-setup handlers with fresh closure captures
                                 handlersConfigured = false
                                 await setupTTSHandlersAsync()
-                                print("[DEBUG speedChange] Handlers re-setup, isPlaying=\(isPlaying)")
-                                // Resume from current sentence
-                                let textFromCurrent = sentences[sentenceToResumeFrom...].joined(separator: " ")
-                                do {
-                                    try await ttsService.speak(text: textFromCurrent, speedMultiplier: newSpeed, voiceId: selectedVoiceId)
-                                    print("[DEBUG speedChange] speak() completed, isPlaying=\(isPlaying)")
-                                    // Add a small delay before clearing restart flag to ensure any pending
-                                    // completion handlers from the old utterance have already been processed
-                                    try await Task.sleep(nanoseconds: 100_000_000) // 100ms
-                                    await ttsService.clearRestartFlag()
-                                    print("[DEBUG speedChange] Restart flag cleared, isPlaying=\(isPlaying)")
-                                    // Ensure isPlaying is true after speed change completes
-                                    // This guards against any race condition with completion handler
-                                    if !isPlaying {
-                                        print("[DEBUG speedChange] WARNING: isPlaying was false, restoring to true")
-                                        isPlaying = true
-                                        isPaused = false
-                                    }
-                                } catch {
-                                    await ttsService.clearRestartFlag()
-                                    isPlaying = false
-                                    print("[DEBUG speedChange] Error during speak: \(error)")
-                                }
+                                // Speak current sentence with new speed - completion handler will auto-advance
+                                speakCurrentSentence()
+                                // Small delay then clear restart flag
+                                try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+                                await ttsService.clearRestartFlag()
                             }
                         }
                     }
@@ -532,52 +503,60 @@ struct TTSReaderView: View {
             return
         }
 
-        print("[DEBUG setupTTSHandlersAsync] Setting up handlers, currentSentenceIndex=\(currentSentenceIndex), speechStartSentenceIndex=\(speechStartSentenceIndex)")
-        // Set up speech progress handler
+        print("[DEBUG setupTTSHandlersAsync] Setting up handlers, currentSentenceIndex=\(currentSentenceIndex)")
+        // Set up speech progress handler - with sentence-by-sentence TTS, this just confirms current sentence
         await ttsService.setSpeechProgressHandler { characterRange in
-            print("[DEBUG progressHandler] Called with range \(characterRange), isPlaying=\(self.isPlaying)")
-            self.updateCurrentSentence(for: characterRange)
+            print("[DEBUG progressHandler] Speaking sentence \(self.currentSentenceIndex), range \(characterRange)")
         }
 
-        // Set up speech completion handler
+        // Set up speech completion handler - auto-advance to next sentence
         await ttsService.setSpeechCompletionHandler {
-            print("[DEBUG completionHandler] Speech finished, resetting to index 0, current isPlaying=\(self.isPlaying)")
-            self.isPlaying = false
-            self.isPaused = false
-            self.currentSentenceIndex = 0
+            print("[DEBUG completionHandler] Sentence \(self.currentSentenceIndex) finished, isPlaying=\(self.isPlaying)")
+
+            // Check if there are more sentences to speak
+            let nextIndex = self.currentSentenceIndex + 1
+            if nextIndex < self.sentences.count && self.isPlaying && !self.isPaused {
+                // Advance to next sentence and speak it
+                self.currentSentenceIndex = nextIndex
+                print("[DEBUG completionHandler] Auto-advancing to sentence \(nextIndex)")
+                self.speakCurrentSentence()
+            } else {
+                // Reached the end or stopped
+                print("[DEBUG completionHandler] Reached end or stopped, resetting")
+                self.isPlaying = false
+                self.isPaused = false
+                self.currentSentenceIndex = 0
+            }
         }
 
         handlersConfigured = true
     }
 
-    private func updateCurrentSentence(for characterRange: NSRange) {
-        // Find which sentence contains the current character range
-        // sentenceRanges is relative to the text being spoken, which starts at speechStartSentenceIndex
-        for (index, sentenceRange) in sentenceRanges.enumerated() {
-            if NSIntersectionRange(characterRange, sentenceRange).length > 0 {
-                // Add the offset to get the actual sentence index in the full sentences array
-                currentSentenceIndex = speechStartSentenceIndex + index
-                break
+    // MARK: - Playback Methods
+
+    /// Speak the current sentence only (sentence-by-sentence TTS to avoid device stuttering)
+    private func speakCurrentSentence() {
+        guard currentSentenceIndex < sentences.count else {
+            print("[DEBUG speakCurrentSentence] No more sentences, stopping")
+            isPlaying = false
+            isPaused = false
+            currentSentenceIndex = 0
+            return
+        }
+
+        let sentence = sentences[currentSentenceIndex]
+        print("[DEBUG speakCurrentSentence] Speaking sentence \(currentSentenceIndex): \"\(sentence.prefix(50))...\"")
+
+        Task {
+            do {
+                try await ttsService.speak(text: sentence, speedMultiplier: selectedSpeed, voiceId: selectedVoiceId)
+            } catch {
+                print("[DEBUG speakCurrentSentence] Error: \(error)")
+                isPlaying = false
+                isPaused = false
             }
         }
     }
-
-    private func buildSentenceRanges(startingFrom startIndex: Int = 0) {
-        let sentencesToSpeak = Array(sentences[startIndex...])
-        fullText = sentencesToSpeak.joined(separator: " ")
-        sentenceRanges.removeAll()
-
-        // Use UTF-16 code unit counts to match AVSpeechSynthesizer's NSRange reporting
-        var currentLocation = 0
-        for sentence in sentencesToSpeak {
-            let utf16Length = sentence.utf16.count
-            sentenceRanges.append(NSRange(location: currentLocation, length: utf16Length))
-            // Add 1 for the space separator (space is 1 UTF-16 code unit)
-            currentLocation += utf16Length + 1
-        }
-    }
-
-    // MARK: - Playback Methods
 
     private func startReading() {
         guard !sentences.isEmpty else { return }
@@ -593,32 +572,15 @@ struct TTSReaderView: View {
         }
 
         // Resume from saved position if available, otherwise start from beginning
-        let textToSpeak: String
-        if currentSentenceIndex > 0 && currentSentenceIndex < sentences.count {
-            // Resume from saved position
-            print("[DEBUG startReading] Resuming from saved position: currentSentenceIndex=\(currentSentenceIndex)")
-            speechStartSentenceIndex = currentSentenceIndex
-            textToSpeak = sentences[currentSentenceIndex...].joined(separator: " ")
-        } else {
-            // Start from beginning
+        if currentSentenceIndex <= 0 || currentSentenceIndex >= sentences.count {
             print("[DEBUG startReading] Starting from beginning (currentSentenceIndex was \(currentSentenceIndex))")
             currentSentenceIndex = 0
-            speechStartSentenceIndex = 0
-            textToSpeak = sentences.joined(separator: " ")
+        } else {
+            print("[DEBUG startReading] Resuming from saved position: currentSentenceIndex=\(currentSentenceIndex)")
         }
 
-        // Build sentence ranges for tracking - must match the text we're speaking
-        buildSentenceRanges(startingFrom: speechStartSentenceIndex)
-
-        Task {
-            do {
-                try await ttsService.speak(text: textToSpeak, speedMultiplier: selectedSpeed, voiceId: selectedVoiceId)
-            } catch {
-                // Handle error silently for now
-                isPlaying = false
-                stopSleepTimer()
-            }
-        }
+        // Speak just the current sentence - completion handler will auto-advance
+        speakCurrentSentence()
     }
 
     private func pauseReading() {
@@ -645,24 +607,14 @@ struct TTSReaderView: View {
             return
         }
 
-        // Update tracking state for the new speech segment
-        speechStartSentenceIndex = currentSentenceIndex
-        let textToSpeak = sentences[currentSentenceIndex...].joined(separator: " ")
-        buildSentenceRanges(startingFrom: currentSentenceIndex)
-
         Task {
             // Re-setup handlers to capture updated state with fresh closure captures
             handlersConfigured = false
             await setupTTSHandlersAsync()
             // Clear restart flag so completion handler works normally when speech finishes
             await ttsService.clearRestartFlag()
-            do {
-                try await ttsService.speak(text: textToSpeak, speedMultiplier: selectedSpeed, voiceId: selectedVoiceId)
-            } catch {
-                print("[DEBUG resumeReading] Error: \(error)")
-                isPlaying = false
-                isPaused = false
-            }
+            // Speak just the current sentence - completion handler will auto-advance
+            speakCurrentSentence()
         }
     }
 
@@ -670,7 +622,6 @@ struct TTSReaderView: View {
         isPlaying = false
         isPaused = false
         currentSentenceIndex = 0
-        speechStartSentenceIndex = 0
         stopSleepTimer()
         sleepTimeRemaining = 0
 
@@ -700,32 +651,17 @@ struct TTSReaderView: View {
 
                 // Update state for the new position
                 currentSentenceIndex = index
-                speechStartSentenceIndex = index
-                buildSentenceRanges(startingFrom: index)
 
                 // Re-setup handlers to capture the updated state with fresh closure captures
                 handlersConfigured = false
                 await setupTTSHandlersAsync()
 
-                // Start speaking from the tapped sentence
-                let textFromTapped = sentences[index...].joined(separator: " ")
-                do {
-                    try await ttsService.speak(text: textFromTapped, speedMultiplier: selectedSpeed, voiceId: selectedVoiceId)
-                    try await Task.sleep(nanoseconds: 100_000_000) // 100ms
-                    await ttsService.clearRestartFlag()
+                // Speak the tapped sentence - completion handler will auto-advance
+                speakCurrentSentence()
 
-                    // Ensure isPlaying state is correct after restart
-                    if !isPlaying {
-                        print("[DEBUG jumpToSentence] WARNING: isPlaying was false, restoring to true")
-                        isPlaying = true
-                        isPaused = false
-                    }
-                } catch {
-                    await ttsService.clearRestartFlag()
-                    isPlaying = false
-                    isPaused = false
-                    print("[DEBUG jumpToSentence] Error during speak: \(error)")
-                }
+                // Small delay then clear restart flag
+                try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+                await ttsService.clearRestartFlag()
             }
         } else {
             // Not playing - just update the position
