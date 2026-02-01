@@ -14,6 +14,7 @@ struct LibraryView: View {
     @State private var navigateToRSVP = false
     @State private var navigateToTTS = false
     @State private var listVisible = false
+    @State private var manualFetchCount = 0
 
     private var filteredArticles: [Article] {
         if searchText.isEmpty {
@@ -39,24 +40,26 @@ struct LibraryView: View {
         NavigationStack {
             Group {
                 if articles.isEmpty {
-                    ContentUnavailableView {
-                        Label("No Saved Articles", systemImage: "books.vertical")
-                            .foregroundColor(.adaptivePrimaryText)
-                    } description: {
-                        Text("Articles you save will appear here")
-                            .foregroundColor(.adaptiveSecondaryText)
+                    VStack(spacing: 16) {
+                        ContentUnavailableView {
+                            Label("No Saved Articles", systemImage: "books.vertical")
+                                .foregroundColor(.adaptivePrimaryText)
+                        } description: {
+                            Text("Articles you save will appear here")
+                                .foregroundColor(.adaptiveSecondaryText)
+                        }
+
+                        // Debug info
+                        Text("DEBUG: @Query count = \(articles.count)")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                        Text("DEBUG: Manual fetch = \(manualFetchCount)")
+                            .font(.caption)
+                            .foregroundColor(.red)
                     }
                     .background(Color.adaptiveBackground)
                     .onAppear {
-                        print("[DEBUG LibraryView] Empty state shown, articles.count=\(articles.count)")
-                        // Try manual fetch to compare
-                        let descriptor = FetchDescriptor<Article>()
-                        if let manualArticles = try? modelContext.fetch(descriptor) {
-                            print("[DEBUG LibraryView] Manual fetch found \(manualArticles.count) articles")
-                            for article in manualArticles {
-                                print("[DEBUG LibraryView]   - \(article.title)")
-                            }
-                        }
+                        updateManualFetchCount()
                     }
                 } else if filteredArticles.isEmpty {
                     ContentUnavailableView.search(text: searchText)
@@ -139,6 +142,13 @@ struct LibraryView: View {
                     TTSReaderView(article: article)
                 }
             }
+        }
+    }
+
+    private func updateManualFetchCount() {
+        let descriptor = FetchDescriptor<Article>()
+        if let fetched = try? modelContext.fetch(descriptor) {
+            manualFetchCount = fetched.count
         }
     }
 
