@@ -221,12 +221,7 @@ struct URLInputView: View {
                 content: content
             )
             modelContext.insert(article)
-            do {
-                try modelContext.save()
-                print("[DEBUG URLInputView] Article saved successfully: \(title)")
-            } catch {
-                print("[DEBUG URLInputView] Failed to save article: \(error)")
-            }
+            try? modelContext.save()
 
             // Store the extracted article and show mode selection
             extractedArticle = article

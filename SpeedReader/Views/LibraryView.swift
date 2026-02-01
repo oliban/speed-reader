@@ -13,8 +13,7 @@ struct LibraryView: View {
     @State private var showModeSelection = false
     @State private var navigateToRSVP = false
     @State private var navigateToTTS = false
-    @State private var listVisible = false
-    @State private var manualFetchCount = 0
+    @State private var listVisible = true
 
     private var filteredArticles: [Article] {
         if searchText.isEmpty {
@@ -40,27 +39,14 @@ struct LibraryView: View {
         NavigationStack {
             Group {
                 if articles.isEmpty {
-                    VStack(spacing: 16) {
-                        ContentUnavailableView {
-                            Label("No Saved Articles", systemImage: "books.vertical")
-                                .foregroundColor(.adaptivePrimaryText)
-                        } description: {
-                            Text("Articles you save will appear here")
-                                .foregroundColor(.adaptiveSecondaryText)
-                        }
-
-                        // Debug info
-                        Text("DEBUG: @Query count = \(articles.count)")
-                            .font(.caption)
-                            .foregroundColor(.red)
-                        Text("DEBUG: Manual fetch = \(manualFetchCount)")
-                            .font(.caption)
-                            .foregroundColor(.red)
+                    ContentUnavailableView {
+                        Label("No Saved Articles", systemImage: "books.vertical")
+                            .foregroundColor(.adaptivePrimaryText)
+                    } description: {
+                        Text("Articles you save will appear here")
+                            .foregroundColor(.adaptiveSecondaryText)
                     }
                     .background(Color.adaptiveBackground)
-                    .onAppear {
-                        updateManualFetchCount()
-                    }
                 } else if filteredArticles.isEmpty {
                     ContentUnavailableView.search(text: searchText)
                         .background(Color.adaptiveBackground)
@@ -142,13 +128,6 @@ struct LibraryView: View {
                     TTSReaderView(article: article)
                 }
             }
-        }
-    }
-
-    private func updateManualFetchCount() {
-        let descriptor = FetchDescriptor<Article>()
-        if let fetched = try? modelContext.fetch(descriptor) {
-            manualFetchCount = fetched.count
         }
     }
 
