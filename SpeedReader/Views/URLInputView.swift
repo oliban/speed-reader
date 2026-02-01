@@ -54,7 +54,7 @@ struct URLInputView: View {
 
                     // URL Input section
                     VStack(spacing: 20) {
-                        // URL text field with paste button
+                        // URL text field with clear and paste buttons
                         HStack(spacing: 12) {
                             SRTextField(
                                 placeholder: "https://example.com/article",
@@ -65,6 +65,26 @@ struct URLInputView: View {
                             .autocorrectionDisabled()
                             .disabled(isLoading)
                             .accessibilityLabel("Article URL")
+
+                            // Clear button (only visible when there's text)
+                            if !urlText.isEmpty {
+                                Button {
+                                    urlText = ""
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.system(size: 18, weight: .medium))
+                                        .foregroundColor(.adaptiveSecondaryText)
+                                        .frame(width: 48, height: 48)
+                                        .background(Color.adaptiveSecondary)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(Color.adaptiveBorder, lineWidth: 1)
+                                        )
+                                        .cornerRadius(8)
+                                }
+                                .disabled(isLoading)
+                                .accessibilityLabel("Clear URL")
+                            }
 
                             // Paste button
                             Button {
