@@ -156,6 +156,16 @@ struct TTSReaderView: View {
                             }
                         }
                     }
+                    .onAppear {
+                        // Scroll to saved position after a brief delay to allow layout
+                        if currentSentenceIndex > 0 {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    proxy.scrollTo(currentSentenceIndex, anchor: .center)
+                                }
+                            }
+                        }
+                    }
                 }
 
                 Rectangle()
