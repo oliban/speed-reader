@@ -26,6 +26,9 @@ struct TTSReaderView: View {
     // Flag to prevent redundant handler setup
     @State private var handlersConfigured: Bool = false
 
+    // Flag to trigger initial scroll after progress is loaded
+    @State private var shouldScrollToSavedPosition: Bool = false
+
     // Speed presets as specified
     private let speedPresets: [Double] = [0.5, 1.0, 1.5, 2.0, 3.0, 4.0]
 
@@ -156,14 +159,15 @@ struct TTSReaderView: View {
                             }
                         }
                     }
-                    .onAppear {
-                        // Scroll to saved position after a brief delay to allow layout
-                        if currentSentenceIndex > 0 {
+                    .onChange(of: shouldScrollToSavedPosition) { oldValue, newValue in
+                        // Scroll to saved position when progress is loaded
+                        if newValue && currentSentenceIndex > 0 {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                                 withAnimation(.easeInOut(duration: 0.3)) {
                                     proxy.scrollTo(currentSentenceIndex, anchor: .center)
                                 }
                             }
+                            shouldScrollToSavedPosition = false
                         }
                     }
                 }
@@ -448,6 +452,7 @@ struct TTSReaderView: View {
                 print("[DEBUG loadProgress] Calculated sentenceIndex=\(savedSentenceIndex) from wordIndex=\(existingProgress.currentWordIndex)")
                 if savedSentenceIndex < sentences.count {
                     currentSentenceIndex = savedSentenceIndex
+                    shouldScrollToSavedPosition = true
                     print("[DEBUG loadProgress] Set currentSentenceIndex to \(savedSentenceIndex)")
                 } else {
                     print("[DEBUG loadProgress] savedSentenceIndex \(savedSentenceIndex) >= sentences.count \(sentences.count), NOT setting")
