@@ -47,6 +47,17 @@ struct LibraryView: View {
                             .foregroundColor(.adaptiveSecondaryText)
                     }
                     .background(Color.adaptiveBackground)
+                    .onAppear {
+                        print("[DEBUG LibraryView] Empty state shown, articles.count=\(articles.count)")
+                        // Try manual fetch to compare
+                        let descriptor = FetchDescriptor<Article>()
+                        if let manualArticles = try? modelContext.fetch(descriptor) {
+                            print("[DEBUG LibraryView] Manual fetch found \(manualArticles.count) articles")
+                            for article in manualArticles {
+                                print("[DEBUG LibraryView]   - \(article.title)")
+                            }
+                        }
+                    }
                 } else if filteredArticles.isEmpty {
                     ContentUnavailableView.search(text: searchText)
                         .background(Color.adaptiveBackground)
