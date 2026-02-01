@@ -304,27 +304,6 @@ struct TTSReaderView: View {
 
                     // Playback controls
                     HStack(spacing: 32) {
-                        // Stop button
-                        Button {
-                            stopReading()
-                        } label: {
-                            Image(systemName: "stop.fill")
-                                .font(.title2)
-                                .foregroundStyle(!isPlaying && !isPaused ? Color.ash.opacity(0.5) : Color.adaptivePrimaryText)
-                                .frame(width: 44, height: 44)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .stroke(Color.smoke, lineWidth: 1)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 10)
-                                                .fill(Color.adaptiveSecondary)
-                                        )
-                                )
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(!isPlaying && !isPaused)
-                        .accessibilityLabel("Stop")
-
                         // Play/Pause button
                         Button {
                             if isPlaying && !isPaused {
