@@ -201,6 +201,7 @@ struct URLInputView: View {
                 content: content
             )
             modelContext.insert(article)
+            try? modelContext.save()  // Explicit save to ensure persistence
 
             // Store the extracted article and show mode selection
             extractedArticle = article
