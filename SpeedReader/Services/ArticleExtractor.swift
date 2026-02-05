@@ -88,8 +88,8 @@ actor ArticleExtractor {
         // Remove unwanted elements before extraction
         stripUnwantedElements(from: document)
 
-        // Extract main content
-        let content = try extractContent(from: document)
+        // Extract main content using text density analysis
+        let content = extractContent(from: document)
 
         if content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             throw ArticleExtractorError.noContentFound
@@ -125,18 +125,17 @@ actor ArticleExtractor {
     /// Strips unwanted elements from the document
     private func stripUnwantedElements(from document: Document) {
         // Remove unwanted tags
-        let unwantedTags = ["script", "style", "nav", "header", "footer", "aside", "noscript", "iframe", "form"]
+        let unwantedTags = ["script", "style", "nav", "footer", "aside", "noscript", "iframe", "form"]
         for tag in unwantedTags {
             _ = try? document.select(tag).remove()
         }
 
         // Remove elements with classes/ids containing unwanted patterns
-        let unwantedPatterns = ["ad", "sidebar", "comment", "related", "share", "social", "newsletter", "popup", "modal", "banner", "promo", "sponsor"]
+        // Conservative list to avoid removing legitimate content
+        let unwantedPatterns = ["sidebar", "comment", "newsletter", "popup", "modal", "promo", "sponsor"]
 
         for pattern in unwantedPatterns {
-            // Remove by class containing pattern
             _ = try? document.select("[class*=\(pattern)]").remove()
-            // Remove by id containing pattern
             _ = try? document.select("[id*=\(pattern)]").remove()
         }
 
@@ -147,32 +146,20 @@ actor ArticleExtractor {
         _ = try? document.select("[aria-hidden='true']").remove()
     }
 
-    /// Extracts the main content from the document using priority-based selection
-    private func extractContent(from document: Document) throws -> String {
-        // Priority 1: <article> tag
-        if let articleElement = try? document.select("article").first(),
-           let content = extractTextContent(from: articleElement),
-           isSubstantialContent(content) {
+    /// Extracts the main content using text density analysis (primary method)
+    private func extractContent(from document: Document) -> String {
+        // Primary method: Text density analysis
+        let content = findBestContentByDensity(in: document)
+        if isSubstantialContent(content) {
             return content
         }
 
-        // Priority 2: [role="main"] or <main> tag
-        if let mainElement = try? document.select("[role='main'], main").first(),
-           let content = extractTextContent(from: mainElement),
-           isSubstantialContent(content) {
-            return content
-        }
-
-        // Priority 3: Common content class names
+        // Fallback: Try known selectors if density analysis fails
         let contentSelectors = [
-            ".post-content",
-            ".article-content",
-            ".entry-content",
-            ".content-body",
-            ".article-body",
-            ".post-body",
-            ".story-body",
-            "[itemprop='articleBody']"
+            "article", "main", "[role='main']",
+            ".gh-content", ".post-content", ".article-content",
+            ".entry-content", ".content-body", ".article-body",
+            ".prose", ".markdown-body", "[itemprop='articleBody']"
         ]
 
         for selector in contentSelectors {
@@ -183,8 +170,64 @@ actor ArticleExtractor {
             }
         }
 
-        // Priority 4: Fallback - find largest text-heavy div
-        return findLargestTextContent(in: document)
+        return ""
+    }
+
+    /// Finds the best content container using text density scoring
+    private func findBestContentByDensity(in document: Document) -> String {
+        var bestContent = ""
+        var bestScore: Double = 0
+
+        // Check all potential content containers
+        let containerSelectors = ["article", "main", "section", "div"]
+
+        for selector in containerSelectors {
+            guard let elements = try? document.select(selector) else { continue }
+
+            for element in elements {
+                let score = calculateContentScore(for: element)
+                if score > bestScore,
+                   let content = extractTextContent(from: element),
+                   isSubstantialContent(content) {
+                    bestScore = score
+                    bestContent = content
+                }
+            }
+        }
+
+        return bestContent
+    }
+
+    /// Calculates a content quality score for an element based on text density
+    private func calculateContentScore(for element: Element) -> Double {
+        do {
+            let text = try element.text()
+            let textLength = Double(text.count)
+
+            // Count paragraphs (good indicator of article content)
+            let paragraphs = try element.select("p")
+            let paragraphCount = Double(paragraphs.size())
+
+            // Count links (high link density = navigation, not content)
+            let links = try element.select("a")
+            let linkText = try links.text()
+            let linkTextLength = Double(linkText.count)
+
+            // Calculate link density (0 to 1, lower is better)
+            let linkDensity = textLength > 0 ? linkTextLength / textLength : 1.0
+
+            // Score formula:
+            // - Reward text length (log scale)
+            // - Reward paragraph count
+            // - Penalize high link density
+            let lengthScore = textLength > 0 ? log(textLength) : 0
+            let paragraphScore = paragraphCount * 10
+            let linkPenalty = linkDensity * 50
+
+            return max(0, lengthScore + paragraphScore - linkPenalty)
+        } catch {
+            return 0
+        }
     }
 
     /// Extracts and cleans text content from an element
@@ -194,12 +237,10 @@ actor ArticleExtractor {
             let paragraphs = try element.select("p, h1, h2, h3, h4, h5, h6")
 
             if paragraphs.isEmpty() {
-                // Fallback to all text if no paragraphs
                 return cleanText(try element.text())
             }
 
             var contentParts: [String] = []
-
             for paragraph in paragraphs {
                 let text = try paragraph.text()
                 let cleaned = cleanText(text)
@@ -214,36 +255,8 @@ actor ArticleExtractor {
         }
     }
 
-    /// Finds the largest text-heavy container as a fallback
-    private func findLargestTextContent(in document: Document) -> String {
-        var bestContent = ""
-        var maxLength = 0
-
-        // Look for divs with substantial text
-        if let divs = try? document.select("div") {
-            for div in divs {
-                if let content = extractTextContent(from: div),
-                   content.count > maxLength,
-                   isSubstantialContent(content) {
-                    maxLength = content.count
-                    bestContent = content
-                }
-            }
-        }
-
-        // If no good div found, try body
-        if bestContent.isEmpty,
-           let body = document.body(),
-           let content = extractTextContent(from: body) {
-            return content
-        }
-
-        return bestContent
-    }
-
     /// Checks if content is substantial enough to be article content
     private func isSubstantialContent(_ content: String) -> Bool {
-        // Require at least 100 characters and multiple words
         let wordCount = content.components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
             .count
@@ -254,28 +267,17 @@ actor ArticleExtractor {
     private func cleanText(_ text: String) -> String {
         var cleaned = text
 
-        // Normalize whitespace - replace multiple spaces/tabs with single space
-        cleaned = cleaned.replacingOccurrences(
-            of: "[ \\t]+",
-            with: " ",
-            options: .regularExpression
-        )
+        // Normalize whitespace
+        cleaned = cleaned.replacingOccurrences(of: "[ \\t]+", with: " ", options: .regularExpression)
 
         // Normalize line breaks
-        cleaned = cleaned.replacingOccurrences(
-            of: "\\n{3,}",
-            with: "\n\n",
-            options: .regularExpression
-        )
+        cleaned = cleaned.replacingOccurrences(of: "\\n{3,}", with: "\n\n", options: .regularExpression)
 
         // Trim each line
         cleaned = cleaned.components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .joined(separator: "\n")
 
-        // Final trim
-        cleaned = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        return cleaned
+        return cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
