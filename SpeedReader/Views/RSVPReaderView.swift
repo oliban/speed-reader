@@ -355,6 +355,17 @@ struct RSVPReaderView: View {
                         state = .paused
                     }
                 }
+            } else if let otherProgress = results.first, otherProgress.totalWords > 0 {
+                // No RSVP progress yet — use percentage from other mode (e.g. TTS) as starting point
+                let percentage = Double(otherProgress.currentWordIndex) / Double(otherProgress.totalWords)
+                let estimatedIndex = Int(percentage * Double(words.count))
+                let clampedIndex = min(max(estimatedIndex, 0), words.count - 1)
+                if clampedIndex > 0 {
+                    currentWordIndex = clampedIndex
+                    if state == .ready {
+                        state = .paused
+                    }
+                }
             }
         } catch {
             // Silently fail - will start from beginning

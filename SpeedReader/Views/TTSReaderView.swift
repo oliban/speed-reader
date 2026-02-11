@@ -436,6 +436,20 @@ struct TTSReaderView: View {
                 } else {
                     print("[DEBUG loadProgress] savedSentenceIndex \(savedSentenceIndex) >= sentences.count \(sentences.count), NOT setting")
                 }
+            } else if let otherProgress = results.first, otherProgress.totalWords > 0 {
+                // No TTS progress yet — use percentage from other mode (e.g. RSVP) as starting point
+                let percentage = Double(otherProgress.currentWordIndex) / Double(otherProgress.totalWords)
+                let estimatedWordIndex = Int(percentage * Double(words.count))
+                let clampedWordIndex = min(max(estimatedWordIndex, 0), words.count - 1)
+                print("[DEBUG loadProgress] Using other mode progress: \(Int(percentage * 100))% -> wordIndex \(clampedWordIndex)")
+                if clampedWordIndex > 0 {
+                    let savedSentenceIndex = sentenceIndex(fromWordIndex: clampedWordIndex)
+                    if savedSentenceIndex < sentences.count {
+                        currentSentenceIndex = savedSentenceIndex
+                        shouldScrollToSavedPosition = true
+                        print("[DEBUG loadProgress] Set currentSentenceIndex to \(savedSentenceIndex) from other mode")
+                    }
+                }
             } else {
                 print("[DEBUG loadProgress] No existing TTS progress found")
             }
