@@ -505,11 +505,17 @@ struct TTSReaderView: View {
 
         // Set up speech completion handler - auto-advance to next sentence
         await ttsService.setSpeechCompletionHandler {
-            print("[DEBUG completionHandler] Sentence \(self.currentSentenceIndex) finished, isPlaying=\(self.isPlaying)")
+            print("[DEBUG completionHandler] Sentence \(self.currentSentenceIndex) finished, isPlaying=\(self.isPlaying), isPaused=\(self.isPaused)")
+
+            // If paused (by user or sleep timer), don't advance or reset position
+            guard !self.isPaused else {
+                print("[DEBUG completionHandler] Ignoring completion - currently paused")
+                return
+            }
 
             // Check if there are more sentences to speak
             let nextIndex = self.currentSentenceIndex + 1
-            if nextIndex < self.sentences.count && self.isPlaying && !self.isPaused {
+            if nextIndex < self.sentences.count && self.isPlaying {
                 // Advance to next sentence and speak it
                 self.currentSentenceIndex = nextIndex
                 print("[DEBUG completionHandler] Auto-advancing to sentence \(nextIndex)")
