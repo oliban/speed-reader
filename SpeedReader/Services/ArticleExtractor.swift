@@ -170,7 +170,51 @@ actor ArticleExtractor {
             }
         }
 
+        // Final fallback: Extract from meta tags (handles JS-rendered pages like Twitter/X)
+        let metaContent = extractFromMetaTags(document: document)
+        if !metaContent.isEmpty {
+            return metaContent
+        }
+
         return ""
+    }
+
+    /// Extracts content from Open Graph and Twitter Card meta tags
+    /// Used as a fallback for JS-rendered pages (e.g. Twitter/X, Facebook)
+    private func extractFromMetaTags(document: Document) -> String {
+        var parts: [String] = []
+
+        // Try og:title or twitter:title for a heading
+        let titleSelectors = [
+            "meta[property='og:title']",
+            "meta[name='twitter:title']"
+        ]
+        for selector in titleSelectors {
+            if let element = try? document.select(selector).first(),
+               let content = try? element.attr("content"),
+               !content.isEmpty {
+                parts.append(content)
+                break
+            }
+        }
+
+        // Try og:description or twitter:description for the body
+        let descriptionSelectors = [
+            "meta[property='og:description']",
+            "meta[name='twitter:description']",
+            "meta[name='description']"
+        ]
+        for selector in descriptionSelectors {
+            if let element = try? document.select(selector).first(),
+               let content = try? element.attr("content"),
+               !content.isEmpty {
+                parts.append(content)
+                break
+            }
+        }
+
+        let combined = parts.joined(separator: "\n\n")
+        return combined.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// Finds the best content container using text density scoring
