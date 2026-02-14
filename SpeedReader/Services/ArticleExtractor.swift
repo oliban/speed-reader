@@ -35,10 +35,82 @@ actor ArticleExtractor {
             guard let url = URL(string: "https://\(urlString)"), url.host != nil else {
                 throw ArticleExtractorError.invalidURL
             }
-            return try await fetchAndParse(url: url)
+            return try await extractFromURL(url)
+        }
+
+        return try await extractFromURL(url)
+    }
+
+    /// Routes extraction based on URL type
+    private func extractFromURL(_ url: URL) async throws -> (title: String, content: String) {
+        // Use oEmbed API for Twitter/X URLs (they require JS to render)
+        if isTwitterURL(url) {
+            return try await extractFromTwitterOEmbed(url: url)
         }
 
         return try await fetchAndParse(url: url)
+    }
+
+    /// Checks if a URL is a Twitter/X post
+    private func isTwitterURL(_ url: URL) -> Bool {
+        guard let host = url.host?.lowercased() else { return false }
+        return host == "x.com" || host == "www.x.com"
+            || host == "twitter.com" || host == "www.twitter.com"
+            || host == "mobile.twitter.com" || host == "mobile.x.com"
+    }
+
+    /// Extracts tweet content using Twitter's oEmbed API
+    private func extractFromTwitterOEmbed(url: URL) async throws -> (title: String, content: String) {
+        guard var components = URLComponents(string: "https://publish.twitter.com/oembed") else {
+            throw ArticleExtractorError.noContentFound
+        }
+        components.queryItems = [URLQueryItem(name: "url", value: url.absoluteString)]
+
+        guard let oembedURL = components.url else {
+            throw ArticleExtractorError.noContentFound
+        }
+
+        let data: Data
+        do {
+            let (responseData, response) = try await URLSession.shared.data(from: oembedURL)
+            if let httpResponse = response as? HTTPURLResponse,
+               !(200...299).contains(httpResponse.statusCode) {
+                throw ArticleExtractorError.noContentFound
+            }
+            data = responseData
+        } catch let error as ArticleExtractorError {
+            throw error
+        } catch {
+            throw ArticleExtractorError.networkError(error)
+        }
+
+        // Parse oEmbed JSON
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let html = json["html"] as? String,
+              let authorName = json["author_name"] as? String else {
+            throw ArticleExtractorError.noContentFound
+        }
+
+        // Extract tweet text from the blockquote HTML
+        let tweetText: String
+        do {
+            let doc = try SwiftSoup.parse(html)
+            // The tweet text is in the <p> inside the <blockquote>
+            if let paragraph = try doc.select("blockquote p").first() {
+                tweetText = try paragraph.text()
+            } else {
+                tweetText = try doc.text()
+            }
+        } catch {
+            throw ArticleExtractorError.parsingError(error)
+        }
+
+        if tweetText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            throw ArticleExtractorError.noContentFound
+        }
+
+        let title = "@\(authorName)"
+        return (title: title, content: tweetText)
     }
 
     /// Fetches HTML from URL and parses the content
