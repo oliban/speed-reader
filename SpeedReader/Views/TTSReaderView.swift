@@ -3,6 +3,7 @@ import SwiftData
 
 struct TTSReaderView: View {
     let article: Article
+    var readingSummary: Bool = false
 
     @Environment(\.modelContext) private var modelContext
     @Query private var settingsArray: [AppSettings]
@@ -83,7 +84,7 @@ struct TTSReaderView: View {
     // Parse content into sentences for basic highlighting
     private var sentences: [String] {
         // Simple sentence splitting - can be enhanced in TTS-004
-        let content = article.content
+        let content = (readingSummary ? article.summary : nil) ?? article.content
         let sentenceEndings = CharacterSet(charactersIn: ".!?")
         var result: [String] = []
         var currentSentence = ""
@@ -105,7 +106,8 @@ struct TTSReaderView: View {
             result.append(trimmed)
         }
 
-        return result.isEmpty ? [article.content] : result
+        let fallback = (readingSummary ? article.summary : nil) ?? article.content
+        return result.isEmpty ? [fallback] : result
     }
 
     var body: some View {
@@ -359,7 +361,8 @@ struct TTSReaderView: View {
 
     /// Load words array for tracking total word count
     private func loadWords() {
-        let text = article.content.isEmpty ? article.title : article.content
+        let baseContent = (readingSummary ? article.summary : nil) ?? article.content
+        let text = baseContent.isEmpty ? article.title : baseContent
         words = text.components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
     }

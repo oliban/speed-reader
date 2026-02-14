@@ -13,6 +13,7 @@ enum RSVPState {
 /// View for displaying RSVP (Rapid Serial Visual Presentation) reading
 struct RSVPReaderView: View {
     let article: Article
+    var readingSummary: Bool = false
 
     @Environment(\.modelContext) private var modelContext
     @Query private var settingsArray: [AppSettings]
@@ -287,7 +288,8 @@ struct RSVPReaderView: View {
 
     /// Loads text and transitions from IDLE to READY
     private func loadText() {
-        let text = article.content.isEmpty ? article.title : article.content
+        let baseContent = (readingSummary ? article.summary : nil) ?? article.content
+        let text = baseContent.isEmpty ? article.title : baseContent
 
         // Use TextTokenizer to tokenize text and get paragraph mappings
         Task {

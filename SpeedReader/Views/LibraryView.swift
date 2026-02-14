@@ -13,6 +13,7 @@ struct LibraryView: View {
     @State private var showModeSelection = false
     @State private var navigateToRSVP = false
     @State private var navigateToTTS = false
+    @State private var readingSummary = false
     @State private var listVisible = true
 
     private var filteredArticles: [Article] {
@@ -108,24 +109,36 @@ struct LibraryView: View {
                 ModeSelectionSheet(
                     article: selectedArticle,
                     onRSVPSelected: {
+                        readingSummary = false
                         showModeSelection = false
                         navigateToRSVP = true
                     },
                     onTTSSelected: {
+                        readingSummary = false
+                        showModeSelection = false
+                        navigateToTTS = true
+                    },
+                    onSummaryRSVPSelected: {
+                        readingSummary = true
+                        showModeSelection = false
+                        navigateToRSVP = true
+                    },
+                    onSummaryTTSSelected: {
+                        readingSummary = true
                         showModeSelection = false
                         navigateToTTS = true
                     }
                 )
-                .presentationDetents([.medium])
+                .presentationDetents([.medium, .large])
             }
             .navigationDestination(isPresented: $navigateToRSVP) {
                 if let article = selectedArticle {
-                    RSVPReaderView(article: article)
+                    RSVPReaderView(article: article, readingSummary: readingSummary)
                 }
             }
             .navigationDestination(isPresented: $navigateToTTS) {
                 if let article = selectedArticle {
-                    TTSReaderView(article: article)
+                    TTSReaderView(article: article, readingSummary: readingSummary)
                 }
             }
         }

@@ -42,14 +42,34 @@ struct ArticleCard: View {
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
 
+            // Summary preview (if available)
+            if let summary = article.summary {
+                Text(summary)
+                    .font(.system(size: 13, weight: .regular, design: .default))
+                    .foregroundColor(.adaptiveSecondaryText)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+            }
+
             Spacer()
                 .frame(height: 4)
 
             // Metadata: domain and date
-            Text("\(domain) \u{00B7} \(formattedDate)")
-                .font(.system(size: 13, weight: .regular, design: .default))
-                .foregroundColor(.ash)
-                .lineLimit(1)
+            HStack(spacing: 6) {
+                Text("\(domain) \u{00B7} \(formattedDate)")
+                    .font(.system(size: 13, weight: .regular, design: .default))
+                    .foregroundColor(.ash)
+                    .lineLimit(1)
+
+                if article.summary != nil {
+                    Text("\u{00B7}")
+                        .font(.system(size: 13))
+                        .foregroundColor(.ash)
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 11))
+                        .foregroundColor(.electricAmber)
+                }
+            }
 
             // Progress bar with percentage
             HStack(spacing: 8) {

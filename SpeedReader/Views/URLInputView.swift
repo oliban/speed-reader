@@ -18,6 +18,7 @@ struct URLInputView: View {
     @State private var extractedArticle: Article?
     @State private var navigateToRSVP: Bool = false
     @State private var navigateToTTS: Bool = false
+    @State private var readingSummary: Bool = false
 
     private let extractor = ArticleExtractor()
 
@@ -155,25 +156,37 @@ struct URLInputView: View {
                 ModeSelectionSheet(
                     article: extractedArticle,
                     onRSVPSelected: {
+                        readingSummary = false
                         showModeSelection = false
                         navigateToRSVP = true
                     },
                     onTTSSelected: {
+                        readingSummary = false
+                        showModeSelection = false
+                        navigateToTTS = true
+                    },
+                    onSummaryRSVPSelected: {
+                        readingSummary = true
+                        showModeSelection = false
+                        navigateToRSVP = true
+                    },
+                    onSummaryTTSSelected: {
+                        readingSummary = true
                         showModeSelection = false
                         navigateToTTS = true
                     }
                 )
-                .presentationDetents([.medium])
+                .presentationDetents([.medium, .large])
                 .presentationBackground(Color.adaptiveBackground)
             }
             .navigationDestination(isPresented: $navigateToRSVP) {
                 if let article = extractedArticle {
-                    RSVPReaderView(article: article)
+                    RSVPReaderView(article: article, readingSummary: readingSummary)
                 }
             }
             .navigationDestination(isPresented: $navigateToTTS) {
                 if let article = extractedArticle {
-                    TTSReaderView(article: article)
+                    TTSReaderView(article: article, readingSummary: readingSummary)
                 }
             }
         }
@@ -240,119 +253,209 @@ struct ModeSelectionSheet: View {
     let article: Article?
     let onRSVPSelected: () -> Void
     let onTTSSelected: () -> Void
+    var onSummaryRSVPSelected: (() -> Void)? = nil
+    var onSummaryTTSSelected: (() -> Void)? = nil
+
+    @State private var isSummarizing = false
+    @State private var summaryError: String?
+
+    private var hasSummary: Bool {
+        article?.summary != nil
+    }
 
     var body: some View {
         ZStack {
             Color.adaptiveBackground
                 .ignoresSafeArea()
 
-            VStack(spacing: 32) {
-                // Header
-                VStack(spacing: 16) {
-                    // Overline
-                    Text("Reading Mode")
-                        .srOverlineStyle()
-                        .foregroundColor(.adaptiveSecondaryText)
-
-                    // Headline
-                    Text("Choose Your Path")
-                        .srHeadlineStyle()
-                        .foregroundColor(.adaptivePrimaryText)
-
-                    // Red underline accent
-                    Rectangle()
-                        .fill(Color.signalRed)
-                        .frame(width: 40, height: 2)
-
-                    if let article = article {
-                        Text(article.title)
-                            .font(.srBody)
+            ScrollView {
+                VStack(spacing: 32) {
+                    // Header
+                    VStack(spacing: 16) {
+                        // Overline
+                        Text("Reading Mode")
+                            .srOverlineStyle()
                             .foregroundColor(.adaptiveSecondaryText)
-                            .multilineTextAlignment(.center)
-                            .lineLimit(2)
-                            .padding(.horizontal, 24)
-                            .padding(.top, 8)
+
+                        // Headline
+                        Text("Choose Your Path")
+                            .srHeadlineStyle()
+                            .foregroundColor(.adaptivePrimaryText)
+
+                        // Red underline accent
+                        Rectangle()
+                            .fill(Color.signalRed)
+                            .frame(width: 40, height: 2)
+
+                        if let article = article {
+                            Text(article.title)
+                                .font(.srBody)
+                                .foregroundColor(.adaptiveSecondaryText)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                                .padding(.horizontal, 24)
+                                .padding(.top, 8)
+                        }
                     }
-                }
-                .padding(.top, 32)
+                    .padding(.top, 32)
 
-                // Mode selection buttons
-                VStack(spacing: 16) {
-                    // RSVP Button
-                    Button(action: onRSVPSelected) {
-                        HStack(spacing: 16) {
-                            Image(systemName: "text.word.spacing")
-                                .font(.system(size: 24, weight: .medium))
-                                .foregroundColor(.adaptiveAccent)
-                                .frame(width: 32)
+                    // Full article mode selection buttons
+                    VStack(spacing: 16) {
+                        // RSVP Button
+                        Button(action: onRSVPSelected) {
+                            modeButtonContent(
+                                icon: "text.word.spacing",
+                                iconColor: .adaptiveAccent,
+                                title: "RSVP READER",
+                                subtitle: "Rapid Serial Visual Presentation"
+                            )
+                        }
+                        .buttonStyle(.plain)
 
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("RSVP READER")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .tracking(0.1 * 13)
-                                    .foregroundColor(.adaptivePrimaryText)
+                        // TTS Button
+                        Button(action: onTTSSelected) {
+                            modeButtonContent(
+                                icon: "speaker.wave.2",
+                                iconColor: .iceBlue,
+                                title: "TTS READER",
+                                subtitle: "Text-to-Speech with highlighting"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 24)
 
-                                Text("Rapid Serial Visual Presentation")
-                                    .font(.system(size: 13, weight: .regular))
+                    // AI Summary section (only when available)
+                    if SummarizationAvailability.isAvailable {
+                        VStack(spacing: 16) {
+                            // Section divider
+                            HStack(spacing: 12) {
+                                Rectangle()
+                                    .fill(Color.adaptiveBorder)
+                                    .frame(height: 1)
+                                Text("AI SUMMARY")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .tracking(0.1 * 11)
                                     .foregroundColor(.adaptiveSecondaryText)
+                                Rectangle()
+                                    .fill(Color.adaptiveBorder)
+                                    .frame(height: 1)
                             }
 
-                            Spacer()
+                            if hasSummary {
+                                // Summary ready — show reading options
+                                if let onSummaryRSVP = onSummaryRSVPSelected {
+                                    Button(action: onSummaryRSVP) {
+                                        modeButtonContent(
+                                            icon: "text.word.spacing",
+                                            iconColor: .electricAmber,
+                                            title: "RSVP SUMMARY",
+                                            subtitle: "Speed-read the summary"
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                }
 
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.adaptiveSecondaryText)
-                        }
-                        .padding(20)
-                        .frame(maxWidth: .infinity)
-                        .background(Color.adaptiveCard)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 0)
-                                .stroke(Color.adaptiveBorder, lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(.plain)
-
-                    // TTS Button
-                    Button(action: onTTSSelected) {
-                        HStack(spacing: 16) {
-                            Image(systemName: "speaker.wave.2")
-                                .font(.system(size: 24, weight: .medium))
-                                .foregroundColor(.iceBlue)
-                                .frame(width: 32)
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("TTS READER")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .tracking(0.1 * 13)
-                                    .foregroundColor(.adaptivePrimaryText)
-
-                                Text("Text-to-Speech with highlighting")
-                                    .font(.system(size: 13, weight: .regular))
-                                    .foregroundColor(.adaptiveSecondaryText)
+                                if let onSummaryTTS = onSummaryTTSSelected {
+                                    Button(action: onSummaryTTS) {
+                                        modeButtonContent(
+                                            icon: "speaker.wave.2",
+                                            iconColor: .electricAmber,
+                                            title: "TTS SUMMARY",
+                                            subtitle: "Listen to the summary"
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            } else {
+                                // Generate summary button
+                                Button {
+                                    Task { await generateSummary() }
+                                } label: {
+                                    modeButtonContent(
+                                        icon: isSummarizing ? "progress.indicator" : "sparkles",
+                                        iconColor: .electricAmber,
+                                        title: isSummarizing ? "SUMMARIZING..." : "GENERATE SUMMARY",
+                                        subtitle: "On-device AI via Apple Intelligence"
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(isSummarizing)
+                                .opacity(isSummarizing ? 0.6 : 1.0)
                             }
 
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.adaptiveSecondaryText)
+                            // Error message
+                            if let summaryError {
+                                Text(summaryError)
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.signalRed)
+                                    .padding(.horizontal, 4)
+                            }
                         }
-                        .padding(20)
-                        .frame(maxWidth: .infinity)
-                        .background(Color.adaptiveCard)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 0)
-                                .stroke(Color.adaptiveBorder, lineWidth: 1)
-                        )
+                        .padding(.horizontal, 24)
                     }
-                    .buttonStyle(.plain)
-                }
-                .padding(.horizontal, 24)
 
-                Spacer()
+                    Spacer()
+                        .frame(height: 32)
+                }
             }
         }
+    }
+
+    /// Reusable button content for mode selection rows
+    private func modeButtonContent(icon: String, iconColor: Color, title: String, subtitle: String) -> some View {
+        HStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.system(size: 24, weight: .medium))
+                .foregroundColor(iconColor)
+                .frame(width: 32)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .tracking(0.1 * 13)
+                    .foregroundColor(.adaptivePrimaryText)
+
+                Text(subtitle)
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundColor(.adaptiveSecondaryText)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.adaptiveSecondaryText)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity)
+        .background(Color.adaptiveCard)
+        .overlay(
+            RoundedRectangle(cornerRadius: 0)
+                .stroke(Color.adaptiveBorder, lineWidth: 1)
+        )
+    }
+
+    @MainActor
+    private func generateSummary() async {
+        guard let article = article else { return }
+        isSummarizing = true
+        summaryError = nil
+        defer { isSummarizing = false }
+
+        #if canImport(FoundationModels)
+        if #available(iOS 26, *) {
+            do {
+                let service = SummarizationService()
+                let summary = try await service.summarize(article.content)
+                article.summary = summary
+            } catch {
+                summaryError = "Summarization failed: \(error.localizedDescription)"
+            }
+            return
+        }
+        #endif
+        summaryError = "Summarization requires iOS 26 or later."
     }
 }
 
@@ -369,7 +472,9 @@ struct ModeSelectionSheet: View {
             content: "Sample content"
         ),
         onRSVPSelected: {},
-        onTTSSelected: {}
+        onTTSSelected: {},
+        onSummaryRSVPSelected: {},
+        onSummaryTTSSelected: {}
     )
 }
 

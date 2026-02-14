@@ -48,3 +48,5 @@ targets:
         DEVELOPMENT_TEAM: 5XR7USWXMZ
     dependencies:
       - package: SwiftSoup
+      - sdk: FoundationModels.framework
+        weak: true
